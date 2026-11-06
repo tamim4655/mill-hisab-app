@@ -37,7 +37,7 @@ jobs:
           fi
           echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
           echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
-          yes | "$SDKMANAGER" --licenses
+          yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Build debug APK
