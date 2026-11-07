@@ -386,6 +386,16 @@ body{padding-bottom:0;overflow-x:hidden}
  .tab.plus-tab{flex:0 0 52px}
 }
 
+
+/* Dark-mode contrast fix for customer and dashboard tables */
+body.dark .tablewrap table,body.dark .tablewrap tbody,body.dark .tablewrap tr{color:#eaf4ed!important}
+body.dark .tablewrap th{color:#f4fff7!important;-webkit-text-fill-color:#f4fff7!important}
+body.dark .tablewrap td,body.dark .tablewrap td span,body.dark .tablewrap td strong,body.dark .tablewrap td b,body.dark .tablewrap td label,body.dark .tablewrap td a{color:#e6f2e9!important;-webkit-text-fill-color:#e6f2e9!important;opacity:1!important}
+body.dark .tablewrap td .red,body.dark .tablewrap td .danger-text{color:#ff9b9f!important;-webkit-text-fill-color:#ff9b9f!important}
+body.dark .tablewrap td input,body.dark .tablewrap td select{background:#10251a!important;color:#f4fff7!important;-webkit-text-fill-color:#f4fff7!important;border-color:#668b72!important;opacity:1!important}
+body.dark .dashboard-cards .card small,body.dark .dashboard-cards .card .num,body.dark #stats .card small,body.dark #stats .card .num{color:#effff3!important;-webkit-text-fill-color:#effff3!important;opacity:1!important;text-shadow:0 1px 1px #001b0b66}
+body.dark .dashboard-cards .card .num,body.dark #stats .card .num{color:#9bf0b6!important;-webkit-text-fill-color:#9bf0b6!important}
+body.dark .dashboard-lower .box,body.dark .dashboard-lower .box b,body.dark .dashboard-lower .box p,body.dark .dashboard-lower .box span{color:#e6f2e9}
 </style></head><body><header class="app-header"><button class="menu-trigger" onclick="toggleDrawer()" aria-label="মেনু">☰</button><div class="brand"><div class="brand-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 29 32 7l26 22v27H6Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M23 56V37h18v19M18 29h28" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M27 19v14m-4-14v8m8-8v8" stroke="currentColor" stroke-width="2.5"/><path d="M45 18v15" stroke="#facc15" stroke-width="4" stroke-linecap="round"/></svg></div><div><h1>মিল হিসাব</h1><p>সঠিক হিসাব, শান্তির ঘর</p></div></div><button class="theme-trigger" onclick="toggleDark()" aria-label="ডার্ক মোড">☾</button></header><main class="wrap">
 <section id="home" class="panel active">
 <div class="dashboard-welcome"><div class="welcome-copy"><span class="eyebrow">স্বাগতম!</span><h2>আমাদের মিল হিসাব অ্যাপে</h2><p>সঠিক হিসাব রাখুন, ঝামেলামুক্ত থাকুন।</p><div class="welcome-actions"><button onclick="go('meals')">আজকের মিল লিখুন</button></div></div><div class="welcome-art"><div class="plate-art">🍛</div><span class="art-leaf leaf-one">🌿</span></div></div><div class="dashboard-toolbar"><div><span class="section-kicker">সারসংক্ষেপ</span><h2>মাসের হিসাব</h2></div><input type="month" id="homeMonth"></div>
