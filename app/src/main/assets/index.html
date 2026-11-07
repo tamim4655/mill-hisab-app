@@ -246,6 +246,70 @@ td input{border-radius:9px;background:#fff}
 @media(max-width:700px){.app-header{min-height:66px;padding:8px 12px}.brand-logo{width:40px;height:40px}.app-header h1{font-size:19px}.wrap{padding:13px 11px 105px}.dashboard-welcome{min-height:145px;padding:18px 16px;border-radius:19px}.welcome-copy h2{font-size:19px;max-width:245px}.welcome-copy p{font-size:11px;max-width:220px}.welcome-art{width:76px;height:82px}.plate-art{width:68px;height:68px;font-size:36px}.dashboard-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.dashboard-cards .card{min-height:98px;padding:13px;border-radius:15px}.dashboard-cards .num{font-size:22px;margin-top:9px}.dashboard-lower{grid-template-columns:1fr;gap:10px}.dashboard-lower .box,.box{padding:15px;border-radius:16px}.dashboard-toolbar{margin-top:20px}.dashboard-toolbar h2{font-size:17px}.dashboard-toolbar input{max-width:145px;min-width:125px}.tabs{width:100%;padding:7px 7px max(7px,env(safe-area-inset-bottom));border-radius:19px 19px 0 0}.tab{font-size:19px;min-height:47px}.tab span{font-size:9px}.tab.plus-tab{flex-basis:51px;width:51px;min-width:51px;height:51px;font-size:28px}.toolbar{padding:11px;gap:8px}.toolbar input,.toolbar select{flex:1;min-width:120px}.panel h2{font-size:18px}.tablewrap{border-radius:14px}.tablewrap th,.tablewrap td{font-size:13px;padding:11px 10px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
+
+/* Dark Modern theme - selected design 2 */
+body.dark{--ink:#edf4ff;--muted:#9aacc4;--line:#263c5c;--bg:#07152b;--white:#102440;--mint:#18365b;--red:#ff7a83;--shadow:0 12px 30px rgba(0,0,0,.24);background:#07152b;color:#edf4ff}
+body.dark .app-header{background:linear-gradient(115deg,#071a36,#0b2d5b 65%,#10417a);box-shadow:0 5px 20px #020b1c88}
+body.dark .app-header h1{color:#fff}body.dark .app-header p{color:#b8cce8}
+body.dark .brand-logo{background:linear-gradient(145deg,#1b83e8,#174ca2);color:#fff;border:1px solid #5ca9ff;box-shadow:0 7px 18px #006eff35}
+body.dark .menu-trigger,body.dark .theme-trigger{color:#d8e9ff}
+body.dark .wrap{background:transparent}
+body.dark .dashboard-welcome{background:linear-gradient(115deg,#0b2b55 0%,#10549b 62%,#1678c9 100%);border:1px solid #2c6eaf;box-shadow:0 14px 30px #020c1f88}
+body.dark .dashboard-welcome:before{border-color:#ffffff20;box-shadow:0 0 0 28px #ffffff0a,0 0 0 58px #ffffff08}
+body.dark .welcome-copy .eyebrow{color:#9fd7ff}
+body.dark .welcome-copy h2{color:#fff}body.dark .welcome-copy h2 em{color:#8de5ff}
+body.dark .welcome-copy p{color:#c0d8f3}
+body.dark .welcome-actions button{background:#13a8ee;color:#041b35;box-shadow:0 5px 15px #001a3c88}
+body.dark .welcome-actions .welcome-outline{background:#ffffff12;color:#fff;border-color:#ffffff40}
+body.dark .plate-art{background:radial-gradient(circle,#f7fbff 0 44%,#b9dfff 45% 55%,#ffffff18 56%);box-shadow:0 10px 25px #020b1c88}
+body.dark .dashboard-toolbar h2,body.dark .panel h2{color:#eaf4ff}
+body.dark .dashboard-toolbar .section-kicker,body.dark .section-kicker{color:#8daed3}
+body.dark .dashboard-toolbar input{background:#102440;color:#edf4ff;border-color:#2c4c72;color-scheme:dark}
+body.dark .dashboard-cards .card{background:linear-gradient(145deg,#12345e,#102746)!important;border:1px solid #2b527c;box-shadow:0 8px 20px #020b1c66}
+body.dark .dashboard-cards .card:before{background:#2b5680}
+body.dark .dashboard-cards .card small{color:#b7cce5!important}
+body.dark .dashboard-cards .card .num,body.dark .dashboard-cards .card:nth-child(n) .num{color:#65c8ff!important}
+body.dark .dashboard-cards .card:nth-child(2) .num{color:#70e0c0!important}
+body.dark .dashboard-cards .card:nth-child(3) .num{color:#ffd27b!important}
+body.dark .dashboard-cards .card:nth-child(4) .num{color:#80d9ff!important}
+body.dark .dashboard-cards .card:nth-child(5) .num{color:#ff9a9e!important}
+body.dark .dashboard-cards .card:nth-child(6) .num{color:#b6a4ff!important}
+body.dark .dashboard-lower .box,body.dark .box,body.dark .toolbar{background:#102440;border:1px solid #263f61;box-shadow:0 8px 22px #020b1c66}
+body.dark .box-heading b,body.dark .quick-box>b{color:#e6f1ff}
+body.dark .status-pill,body.dark .pill{background:#173b62;color:#8ed3ff;border:1px solid #285987}
+body.dark #summary{background:#0a1c35;border:1px solid #263f61;color:#c3d6ed}
+body.dark #summary b{color:#8ed3ff}
+body.dark .quick-actions button{background:linear-gradient(145deg,#17365b,#122a49);border:1px solid #2b4e75;color:#e5f1ff}
+body.dark .quick-actions button span{background:#1d4a78;color:#75d0ff}
+body.dark .tabs{background:rgba(8,24,46,.97);border:1px solid #263e5e;border-bottom:0;box-shadow:0 -8px 28px #0006}
+body.dark .tab{color:#9fb2cb}body.dark .tab.active{background:#173c67;color:#78d1ff}
+body.dark .tab.plus-tab{background:linear-gradient(145deg,#1b9ff0,#1763c3);border-color:#07152b;color:#fff;box-shadow:0 6px 18px #006eff55}
+body.dark button{background:linear-gradient(135deg,#167fce,#1557a5);color:#fff}
+body.dark .secondary{background:#183e63;color:#a9ddff;border:1px solid #2b5a83}
+body.dark .danger{background:#512b3a;color:#ffc2c8;border:1px solid #793b50}
+body.dark input,body.dark select,body.dark textarea{background:#0b1d35;color:#edf4ff;border-color:#345273;color-scheme:dark}
+body.dark input::placeholder,body.dark textarea::placeholder{color:#8199b7}
+body.dark input:focus,body.dark select:focus,body.dark textarea:focus{border-color:#39aef5;box-shadow:0 0 0 3px #1689d633}
+body.dark .tablewrap{background:#102440;border:1px solid #294766;box-shadow:0 8px 22px #020b1c66}
+body.dark table{color:#eaf3ff}
+body.dark th{background:#18385c;color:#bfe3ff;border-color:#294766}
+body.dark td{background:#102440;color:#dceaff;border-color:#263f5d}
+body.dark tbody tr:nth-child(even) td{background:#132b49}
+body.dark tbody tr:hover td{background:#1a3a60}
+body.dark td input{background:#091b32;color:#fff;border-color:#345273}
+body.dark .drawer-backdrop{background:#020817bb}
+body.dark .side-drawer{background:#0d2039;border-color:#294766}
+body.dark .drawer-head{background:linear-gradient(140deg,#09254a,#10549b)}
+body.dark .drawer-link{color:#e0edff}
+body.dark .drawer-link span{background:#17385d;color:#81d0ff}
+body.dark .drawer-link:hover,body.dark .drawer-link:active{background:#17385d;color:#8ed7ff}
+body.dark .pin-lock{background:#020b1ddd}
+body.dark .pin-card{background:#102440;color:#edf4ff;border:1px solid #345273}
+body.dark .pin-card input{background:#081a31;color:#fff}
+body.dark .hint,body.dark .muted{color:#a6bad3}
+body.dark .red{color:#ff9299}
+@media(max-width:700px){body.dark .dashboard-welcome{background:linear-gradient(120deg,#0b2b55,#10549b 70%,#176fba)}body.dark .dashboard-cards .card{min-height:98px}}
+
 </style></head><body><header class="app-header"><button class="menu-trigger" onclick="toggleDrawer()" aria-label="মেনু">☰</button><div class="brand"><div class="brand-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 29 32 7l26 22v27H6Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M23 56V37h18v19M18 29h28" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M27 19v14m-4-14v8m8-8v8" stroke="currentColor" stroke-width="2.5"/><path d="M45 18v15" stroke="#facc15" stroke-width="4" stroke-linecap="round"/></svg></div><div><h1>মিল হিসাব</h1><p>সঠিক হিসাব, শান্তির ঘর</p></div></div><button class="theme-trigger" onclick="toggleDark()" aria-label="ডার্ক মোড">☾</button></header><main class="wrap">
 <section id="home" class="panel active">
 <div class="dashboard-welcome"><div class="welcome-copy"><span class="eyebrow">স্বাগতম!</span><h2>আমাদের মিল হিসাব অ্যাপে</h2><p>সঠিক হিসাব রাখুন, ঝামেলামুক্ত থাকুন।</p><div class="welcome-actions"><button onclick="go('meals')">আজকের মিল লিখুন</button></div></div><div class="welcome-art"><div class="plate-art">🍛</div><span class="art-leaf leaf-one">🌿</span></div></div><div class="dashboard-toolbar"><div><span class="section-kicker">সারসংক্ষেপ</span><h2>মাসের হিসাব</h2></div><input type="month" id="homeMonth"></div>
@@ -263,7 +327,7 @@ td input{border-radius:9px;background:#fff}
 <script>
 const SEED=[{"id": "C001", "name": "বিড়াল দোকান", "rate": 70.0, "active": true}, {"id": "C002", "name": "দুধের মিস্টি", "rate": 65.0, "active": true}, {"id": "C003", "name": "রাজভোগ", "rate": 65.0, "active": true}, {"id": "C004", "name": "জোবায়ের ভাই", "rate": 70.0, "active": true}, {"id": "C005", "name": "শ্যামল দা", "rate": 70.0, "active": true}, {"id": "C006", "name": "সাগর ভাই", "rate": 70.0, "active": true}, {"id": "C007", "name": "সাব্বির ভাই প্রিন্স", "rate": 70.0, "active": true}, {"id": "C008", "name": "বউ বাজার অফিস", "rate": 70.0, "active": true}, {"id": "C009", "name": "সুপান ভাই", "rate": 63.0, "active": true}, {"id": "C010", "name": "মিঠু ভাই", "rate": 70.0, "active": true}, {"id": "C011", "name": "স্পর্শ ভাই", "rate": 70.0, "active": true}, {"id": "C012", "name": "কামাল ভাই", "rate": 70.0, "active": true}, {"id": "C013", "name": "ইসমাইল ভাই", "rate": 70.0, "active": true}, {"id": "C014", "name": "শামিম", "rate": 70.0, "active": true}, {"id": "C015", "name": "জাকারিয়া ভাই", "rate": 70.0, "active": true}, {"id": "C016", "name": "আফনান ভাই", "rate": 65.0, "active": true}, {"id": "C017", "name": "নাফিজ ভাই", "rate": 65.0, "active": true}, {"id": "C018", "name": "রহিম ভাই", "rate": 70.0, "active": true}, {"id": "C019", "name": "ns tower", "rate": 70.0, "active": true}, {"id": "C020", "name": "havey metal", "rate": 65.0, "active": true}, {"id": "C021", "name": "hassan vai", "rate": 70.0, "active": true}, {"id": "C022", "name": "লুবান", "rate": 70.0, "active": true}, {"id": "C023", "name": "likhon vai", "rate": 70.0, "active": true}],KEY='meal_manager_bn_v1';let db=load();function load(){try{let d=JSON.parse(localStorage.getItem(KEY));if(d&&d.customers)return d}catch(e){}return{customers:SEED,meals:{},payments:[],expenses:[]}}function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}
 const PIN_KEY='mill_hisab_pin_v1',THEME_KEY='mill_hisab_theme_v1';
-function applyTheme(){let d=localStorage.getItem(THEME_KEY)==='dark';document.body.classList.toggle('dark',d);let b=document.getElementById('darkToggle');if(b)b.textContent=d?'ডার্ক মোড বন্ধ করুন':'ডার্ক মোড চালু করুন'}
+function applyTheme(){let d=localStorage.getItem(THEME_KEY)!=='light';document.body.classList.toggle('dark',d);let b=document.getElementById('darkToggle');if(b)b.textContent=d?'ডার্ক মোড বন্ধ করুন':'ডার্ক মোড চালু করুন'}
 function toggleDark(){localStorage.setItem(THEME_KEY,document.body.classList.contains('dark')?'light':'dark');applyTheme()}
 function savePin(){let p=document.getElementById('pinInput').value;if(!/^\d{4,8}$/.test(p))return alert('৪ থেকে ৮ সংখ্যার PIN দিন');localStorage.setItem(PIN_KEY,p);document.getElementById('pinInput').value='';pinStatus();alert('PIN সংরক্ষণ হয়েছে')}
 function removePin(){if(!localStorage.getItem(PIN_KEY))return alert('PIN সেট করা নেই');let p=prompt('বর্তমান PIN লিখুন');if(p!==localStorage.getItem(PIN_KEY))return alert('PIN সঠিক নয়');localStorage.removeItem(PIN_KEY);pinStatus()}
