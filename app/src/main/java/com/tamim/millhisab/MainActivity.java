@@ -43,6 +43,7 @@ public class MainActivity extends Activity {
         webView.setBackgroundColor(0xFFFFFFFF);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
+        settings.setTextZoom(100); // Keep CSS sizing consistent on Android WebView
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setAllowFileAccess(true);
