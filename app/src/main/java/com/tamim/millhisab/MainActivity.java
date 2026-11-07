@@ -1,6 +1,13 @@
 package com.tamim.millhisab;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
@@ -11,9 +18,54 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.WindowManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+import java.util.concurrent.Executor;
 
 public class MainActivity extends Activity {
     private WebView webView;
+    private static final int REQUEST_NOTIFICATIONS = 8102;
+    private static final String CHANNEL_ID = "mill_hisab_due_reminders";
+    private String pendingTitle;
+    private String pendingMessage;
+
+    private class AppBridge {
+        @JavascriptInterface
+        public void shareText(String title, String text) {
+            runOnUiThread(() -> {
+                Intent send = new Intent(Intent.ACTION_SEND);
+                send.setType("text/plain");
+                send.putExtra(Intent.EXTRA_SUBJECT, title == null ? "মিল হিসাব" : title);
+                send.putExtra(Intent.EXTRA_TEXT, text == null ? "" : text);
+                startActivity(Intent.createChooser(send, "শেয়ার করুন"));
+            });
+        }
+
+        @JavascriptInterface
+        public void requestNotificationPermission() {
+            runOnUiThread(() -> ensureNotificationPermission());
+        }
+
+        @JavascriptInterface
+        public void showDueReminder(String title, String message) {
+            runOnUiThread(() -> {
+                pendingTitle = title;
+                pendingMessage = message;
+                ensureNotificationPermission();
+                if (Build.VERSION.SDK_INT < 33 ||
+                        checkSelfPermission("android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED) {
+                    postDueNotification(pendingTitle, pendingMessage);
+                    pendingTitle = null;
+                    pendingMessage = null;
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void authenticateBiometric() {
+            runOnUiThread(() -> startBiometricPrompt());
+        }
+    }
 
     private class PrintBridge {
         @JavascriptInterface
@@ -22,8 +74,7 @@ public class MainActivity extends Activity {
                 if (webView == null) return;
                 PrintManager printManager = (PrintManager) getSystemService(PRINT_SERVICE);
                 if (printManager == null) return;
-                String safeName = (jobName == null || jobName.trim().isEmpty())
-                        ? "মিল হিসাব" : jobName;
+                String safeName = (jobName == null || jobName.trim().isEmpty()) ? "মিল হিসাব" : jobName;
                 PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter(safeName);
                 PrintAttributes attributes = new PrintAttributes.Builder()
                         .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
@@ -35,30 +86,104 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void startBiometricPrompt() {
+        Executor executor = ContextCompat.getMainExecutor(this);
+        BiometricPrompt prompt = new BiometricPrompt(this, executor, new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                if (webView != null) webView.evaluateJavascript("window.onBiometricResult && window.onBiometricResult(true)", null);
+            }
+            @Override
+            public void onAuthenticationError(int errorCode, CharSequence errString) {
+                if (webView != null) webView.evaluateJavascript("window.onBiometricResult && window.onBiometricResult(false)", null);
+            }
+            @Override
+            public void onAuthenticationFailed() {
+                if (webView != null) webView.evaluateJavascript("window.onBiometricResult && window.onBiometricResult(false)", null);
+            }
+        });
+        BiometricPrompt.PromptInfo.Builder builder = new BiometricPrompt.PromptInfo.Builder()
+                .setTitle("মিল হিসাব নিরাপত্তা")
+                .setSubtitle("ফিঙ্গারপ্রিন্ট বা ফোনের নিরাপত্তা যাচাই করুন");
+        if (Build.VERSION.SDK_INT >= 30) {
+            builder.setAllowedAuthenticators(BiometricPrompt.Authenticators.BIOMETRIC_WEAK |
+                    BiometricPrompt.Authenticators.DEVICE_CREDENTIAL);
+        } else {
+            builder.setAllowedAuthenticators(BiometricPrompt.Authenticators.BIOMETRIC_WEAK)
+                    .setNegativeButtonText("PIN দিয়ে খুলুন");
+        }
+        try {
+            prompt.authenticate(builder.build());
+        } catch (Exception e) {
+            if (webView != null) webView.evaluateJavascript("window.onBiometricResult && window.onBiometricResult(false)", null);
+        }
+    }
+
+    private void ensureNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, REQUEST_NOTIFICATIONS);
+        } else {
+            createNotificationChannel();
+        }
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "বকেয়া মনে করিয়ে দেওয়া",
+                    NotificationManager.IMPORTANCE_DEFAULT);
+            channel.setDescription("মিল হিসাব অ্যাপের দৈনিক বকেয়া নোটিফিকেশন");
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) manager.createNotificationChannel(channel);
+        }
+    }
+
+    private void postDueNotification(String title, String message) {
+        if (Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return;
+        createNotificationChannel();
+        Intent open = new Intent(this, MainActivity.class);
+        PendingIntent pending = PendingIntent.getActivity(this, 0, open,
+                PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0));
+        Notification.Builder builder = Build.VERSION.SDK_INT >= 26
+                ? new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
+        builder.setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title == null ? "মিল হিসাব" : title)
+                .setContentText(message == null ? "বকেয়া হিসাব দেখুন" : message)
+                .setContentIntent(pending).setAutoCancel(true);
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (manager != null) manager.notify(8102, builder.build());
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_NOTIFICATIONS && grantResults.length > 0 &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            postDueNotification(pendingTitle, pendingMessage);
+            pendingTitle = null;
+            pendingMessage = null;
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-
-        // Use the traditional non-edge-to-edge layout so Android system icons
-        // stay in the status bar and never overlap the WebView header.
-        if (android.os.Build.VERSION.SDK_INT >= 30) {
-            getWindow().setDecorFitsSystemWindows(true);
-        }
-        if (android.os.Build.VERSION.SDK_INT >= 21) {
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
-                    | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(true);
+        if (Build.VERSION.SDK_INT >= 21) {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS |
+                    WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
             getWindow().setStatusBarColor(android.graphics.Color.rgb(0, 105, 55));
             getWindow().setNavigationBarColor(android.graphics.Color.rgb(0, 105, 55));
             getWindow().getDecorView().setSystemUiVisibility(0);
         }
-
         webView = new WebView(this);
         webView.setBackgroundColor(0xFFFFFFFF);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
-        settings.setTextZoom(100); // Keep CSS sizing consistent on Android WebView
+        settings.setTextZoom(100);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setAllowFileAccess(true);
@@ -68,6 +193,7 @@ public class MainActivity extends Activity {
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
         webView.addJavascriptInterface(new PrintBridge(), "AndroidPrint");
+        webView.addJavascriptInterface(new AppBridge(), "AndroidBridge");
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
         setContentView(webView);
