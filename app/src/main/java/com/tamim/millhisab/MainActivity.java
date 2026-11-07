@@ -39,7 +39,28 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+
+        // Keep app content below Android status bar and above navigation bar.
+        // Prevent Android 15 edge-to-edge from drawing system icons over the header.
+        if (android.os.Build.VERSION.SDK_INT >= 21) {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                    | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            getWindow().setStatusBarColor(android.graphics.Color.rgb(0, 105, 55));
+            getWindow().setNavigationBarColor(android.graphics.Color.rgb(0, 105, 55));
+            getWindow().getDecorView().setSystemUiVisibility(0);
+        }
+
         webView = new WebView(this);
+        if (android.os.Build.VERSION.SDK_INT >= 20) {
+            webView.setOnApplyWindowInsetsListener((view, insets) -> {
+                int top = insets.getSystemWindowInsetTop();
+                int bottom = insets.getSystemWindowInsetBottom();
+                view.setPadding(0, top, 0, bottom);
+                return insets;
+            });
+            webView.requestApplyInsets();
+        }
         webView.setBackgroundColor(0xFFFFFFFF);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
