@@ -123,6 +123,40 @@ body{background:#f4f7f4}
 .tablewrap td{color:#263d30;font-weight:600}
 .tablewrap td input{font-size:16px;font-weight:650}
 @media(max-width:650px){.tablewrap th,.tablewrap td{font-size:15px}.tablewrap td input{font-size:17px;min-height:44px}}
+
+/* Professional usability and accessibility polish */
+:root{--focus-ring:rgba(8,122,80,.24)}
+button,.tab,input,select{ -webkit-tap-highlight-color:transparent }
+button{min-height:42px;transition:transform .14s ease,filter .14s ease,box-shadow .14s ease}
+button:hover{filter:brightness(.97)}
+button:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px}
+input,select{font-size:16px;line-height:1.4}
+input::placeholder{color:#687a70;opacity:1}
+.tablewrap{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+table{font-variant-numeric:tabular-nums}
+tbody tr:nth-child(even){background:#f8fbf8}
+td,th{vertical-align:middle}
+td input{width:100%;min-width:82px}
+.panel .box{margin-bottom:12px}
+.panel h2{letter-spacing:-.15px}
+.hint{color:#52685b;font-weight:500}
+.secondary{background:#e2f4e9;color:#075c3d;font-weight:750}
+.danger{background:#fff0ee;color:#a51f19;font-weight:750}
+.dark input::placeholder{color:#c1d0c6}
+.dark .hint{color:#bdcfc3}
+.dark tbody tr:nth-child(even){background:#1d3025}
+.dark .tablewrap td{color:#183b2a}
+@media(max-width:650px){
+  button{min-height:44px}
+  input,select{min-height:46px}
+  .toolbar{gap:8px}
+  .toolbar button{flex:0 0 auto}
+  .tablewrap{border-radius:13px}
+  .panel h2{margin-bottom:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
 </style></head><body><header class="app-header"><button class="menu-trigger" onclick="toggleDrawer()" aria-label="মেনু">☰</button><div class="brand"><div class="brand-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 29 32 7l26 22v27H6Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M23 56V37h18v19M18 29h28" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M27 19v14m-4-14v8m8-8v8" stroke="currentColor" stroke-width="2.5"/><path d="M45 18v15" stroke="#facc15" stroke-width="4" stroke-linecap="round"/></svg></div><div><h1>মিল হিসাব</h1><p>সঠিক হিসাব, শান্তির ঘর</p></div></div><button class="theme-trigger" onclick="toggleDark()" aria-label="ডার্ক মোড">☾</button></header><main class="wrap">
 <section id="home" class="panel active">
 <div class="dashboard-welcome"><div class="welcome-copy"><span class="eyebrow">স্বাগতম!</span><h2>আমাদের মিল হিসাব অ্যাপে</h2><p>সঠিক হিসাব রাখুন, ঝামেলামুক্ত থাকুন।</p><div class="welcome-actions"><button onclick="go('meals')">আজকের মিল লিখুন</button></div></div><div class="welcome-art"><div class="plate-art">🍛</div><span class="art-leaf leaf-one">🌿</span></div></div><div class="dashboard-toolbar"><div><span class="section-kicker">সারসংক্ষেপ</span><h2>মাসের হিসাব</h2></div><input type="month" id="homeMonth"></div>
