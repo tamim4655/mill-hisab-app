@@ -407,7 +407,7 @@ const SEED=[{"id": "C001", "name": "বিড়াল দোকান", "rate": 70
 const PIN_KEY='mill_hisab_pin_v1',THEME_KEY='mill_hisab_theme_v1';
 const FONT_SIZE_KEY='mill_hisab_font_size_v1';
 function bnNumber(n){return String(n).replace(/\\d/g,d=>'০১২৩৪৫৬৭৮৯'[+d])}
-function setFontSize(value){let n=Math.max(12,Math.min(22,Math.round(+value||15)));document.documentElement.style.setProperty('--user-font-size',n+'px');document.body.style.fontSize=n+'px';localStorage.setItem(FONT_SIZE_KEY,String(n));let r=document.getElementById('fontSizeControl'),v=document.getElementById('fontSizeValue');if(r)r.value=n;if(v)v.textContent=bnNumber(n)+' px'}
+function setFontSize(value){let n=Math.max(12,Math.min(22,Math.round(+value||15)));let scale=n/15;document.documentElement.style.setProperty('--user-font-size',n+'px');document.documentElement.style.setProperty('--ui-font-scale',String(scale));document.body.style.fontSize=n+'px';document.body.style.zoom=String(scale);localStorage.setItem(FONT_SIZE_KEY,String(n));let r=document.getElementById('fontSizeControl'),v=document.getElementById('fontSizeValue');if(r)r.value=n;if(v)v.textContent=bnNumber(n)+' px'}
 function adjustFont(delta){let n=+(localStorage.getItem(FONT_SIZE_KEY)||15);setFontSize(n+delta)}
 function resetFontSize(){setFontSize(15)}
 function applySavedFontSize(){setFontSize(localStorage.getItem(FONT_SIZE_KEY)||15)}
