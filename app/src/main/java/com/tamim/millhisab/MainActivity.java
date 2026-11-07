@@ -157,7 +157,7 @@ public class MainActivity extends FragmentActivity {
             builder.setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK |
                     BiometricManager.Authenticators.DEVICE_CREDENTIAL);
         } else {
-            builder.setAllowedAuthenticators(BiometricPrompt.Authenticators.BIOMETRIC_WEAK)
+            builder.setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
                     .setNegativeButtonText("PIN দিয়ে খুলুন");
         }
         try {
