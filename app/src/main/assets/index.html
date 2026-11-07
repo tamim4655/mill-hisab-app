@@ -341,6 +341,51 @@ body.dark .month-goal{background:linear-gradient(130deg,#263b20,#1d3926)}body.da
 body.dark .side-drawer{background:#17291e;color:#e8f2ea}body.dark .drawer-link{color:#e2eee4}body.dark .drawer-link span{background:#24432d;color:#8ee6a6}body.dark .tablewrap{border-color:#30483a}body.dark td{background:#192820;color:#e8f2ea;border-color:#30483a}body.dark tbody tr:nth-child(even) td{background:#1d3024}body.dark th{background:#24432d;color:#d7efdc}body.dark input,body.dark select{background:#142319;color:#edf5ef;border-color:#405b48;color-scheme:dark}
 @media(max-width:650px){.app-header{padding:10px 12px;min-height:68px}.app-header h1{font-size:21px}.wrap{padding:10px 9px 105px}.dashboard-welcome{min-height:112px;padding:13px 12px}.dashboard-welcome:after{font-size:48px;left:8px}.welcome-copy{width:66%}.welcome-copy h2{font-size:18px}.welcome-copy p{font-size:12px}.dashboard-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.dashboard-cards .card{min-height:108px}.dashboard-cards .card .num{font-size:21px}.dashboard-lower{grid-template-columns:1fr}.month-goal{grid-row:auto}.quick-box{grid-column:auto}.quick-actions{grid-template-columns:repeat(2,minmax(0,1fr))}#summary{justify-content:space-between;gap:7px}.summary-gauge{width:112px;height:112px;flex-basis:112px}.summary-values p{font-size:13px}.tabs{height:68px}.tab{min-width:48px;font-size:18px;padding:4px 5px}.tab span{font-size:10px}.tab.plus-tab{width:54px;height:54px;min-width:54px;font-size:31px}}
 @media print{.tabs,.menu-trigger,.theme-trigger{display:none!important}.wrap{padding:0}.dashboard-welcome{box-shadow:none}}
+
+/* Mobile rendering fixes: readable stat cards, compact header and safe bottom space */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{padding-bottom:0;overflow-x:hidden}
+#stats .card.stat-0{background:linear-gradient(145deg,#168dff,#0062d9)!important}
+#stats .card.stat-1{background:linear-gradient(145deg,#36c51d,#07933b)!important}
+#stats .card.stat-2{background:linear-gradient(145deg,#ffb400,#ff8500)!important}
+#stats .card.stat-3{background:linear-gradient(145deg,#ff6557,#ec252d)!important}
+#stats .card.stat-0 small,#stats .card.stat-1 small,#stats .card.stat-2 small,#stats .card.stat-3 small,
+#stats .card.stat-0 .num,#stats .card.stat-1 .num,#stats .card.stat-2 .num,#stats .card.stat-3 .num{color:#fff!important;-webkit-text-fill-color:#fff!important;opacity:1!important}
+#stats .card{isolation:isolate}
+.dashboard-toolbar{min-width:0}
+.dashboard-toolbar>div{min-width:0}
+.dashboard-toolbar input[type=month]{width:clamp(132px,43vw,180px);min-width:0;max-width:48%;font-size:14px;padding:9px 7px}
+#summary{min-width:0;flex-wrap:wrap}
+.summary-values{min-width:0}
+.tabs{padding-bottom:max(9px,env(safe-area-inset-bottom));min-height:76px}
+.wrap{padding-bottom:calc(125px + env(safe-area-inset-bottom))}
+@media(max-width:650px){
+ .app-header{min-height:62px;padding:7px 10px;gap:9px}
+ .app-header h1{font-size:19px;line-height:1.2}
+ .app-header p{font-size:11px;line-height:1.25}
+ .brand{min-width:0;gap:8px}
+ .brand-logo{width:38px;height:38px;flex:0 0 38px}
+ .brand-logo svg{width:29px;height:29px}
+ .menu-trigger,.theme-trigger{width:36px;height:36px;flex:0 0 36px;font-size:20px}
+ .dashboard-welcome{min-height:112px}
+ .dashboard-toolbar{gap:6px}
+ .dashboard-toolbar h2{font-size:17px}
+ .dashboard-toolbar input[type=month]{width:138px;max-width:44%;font-size:13px}
+ .dashboard-cards .card{min-height:96px}
+ .dashboard-cards .card small{font-size:11px}
+ .dashboard-cards .card .num{font-size:20px}
+ .dashboard-lower{gap:10px}
+ .dashboard-lower .box{min-width:0}
+ #summary{gap:8px;justify-content:center}
+ .summary-gauge{width:104px;height:104px;flex-basis:104px}
+ .summary-gauge:before{inset:11px}
+ .summary-values{flex:1 1 125px}
+ .summary-values p{font-size:12px;gap:6px}
+ .tabs{height:auto;min-height:72px;padding:6px 5px max(10px,env(safe-area-inset-bottom));}
+ .tab{min-width:0;flex:1;padding:4px 2px}
+ .tab.plus-tab{flex:0 0 52px}
+}
+
 </style></head><body><header class="app-header"><button class="menu-trigger" onclick="toggleDrawer()" aria-label="মেনু">☰</button><div class="brand"><div class="brand-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 29 32 7l26 22v27H6Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M23 56V37h18v19M18 29h28" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M27 19v14m-4-14v8m8-8v8" stroke="currentColor" stroke-width="2.5"/><path d="M45 18v15" stroke="#facc15" stroke-width="4" stroke-linecap="round"/></svg></div><div><h1>মিল হিসাব</h1><p>সঠিক হিসাব, শান্তির ঘর</p></div></div><button class="theme-trigger" onclick="toggleDark()" aria-label="ডার্ক মোড">☾</button></header><main class="wrap">
 <section id="home" class="panel active">
 <div class="dashboard-welcome"><div class="welcome-copy"><span class="eyebrow">স্বাগতম!</span><h2>আমাদের মিল হিসাব অ্যাপে</h2><p>সঠিক হিসাব রাখুন, ঝামেলামুক্ত থাকুন।</p><div class="welcome-actions"><button onclick="go('meals')">আজকের মিল লিখুন</button></div></div><div class="welcome-art"><div class="plate-art">🍛</div><span class="art-leaf leaf-one">🌿</span></div></div><div class="dashboard-toolbar"><div><span class="section-kicker">সারসংক্ষেপ</span><h2>মাসের হিসাব</h2></div><input type="month" id="homeMonth"></div>
