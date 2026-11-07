@@ -35,7 +35,7 @@ public class DueReminderReceiver extends BroadcastReceiver {
                 ? new Notification.Builder(context, CHANNEL_ID) : new Notification.Builder(context);
         b.setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle("মিল হিসাবের দৈনিক মনে করিয়ে দেওয়া")
-                .setContentText("আজকের মিল, জমা ও বকেয়ার হিসাব দেখে নিন।")
+                .setContentText(dueMessage)
                 .setContentIntent(pending).setAutoCancel(true);
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) nm.notify(8103, b.build());
