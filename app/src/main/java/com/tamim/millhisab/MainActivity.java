@@ -1,14 +1,18 @@
 package com.tamim.millhisab;
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import java.util.Calendar;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
@@ -62,6 +66,16 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void scheduleDailyReminder(int hour, int minute) {
+            runOnUiThread(() -> scheduleReminder(hour, minute));
+        }
+
+        @JavascriptInterface
+        public void cancelDailyReminder() {
+            runOnUiThread(() -> cancelReminder());
+        }
+
+        @JavascriptInterface
         public void authenticateBiometric() {
             runOnUiThread(() -> startBiometricPrompt());
         }
@@ -84,6 +98,38 @@ public class MainActivity extends Activity {
                 printManager.print(safeName, adapter, attributes);
             });
         }
+    }
+
+    private void scheduleReminder(int hour, int minute) {
+        SharedPreferences p = getSharedPreferences("mill_hisab_reminders", MODE_PRIVATE);
+        p.edit().putBoolean("enabled", true).putInt("hour", Math.max(0, Math.min(23, hour)))
+                .putInt("minute", Math.max(0, Math.min(59, minute))).apply();
+        AlarmManager alarm = (AlarmManager) getSystemService(ALARM_SERVICE);
+        Intent intent = new Intent(this, DueReminderReceiver.class).setAction(DueReminderReceiver.ACTION_DAILY_REMINDER);
+        PendingIntent pending = PendingIntent.getBroadcast(this, 8103, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0));
+        Calendar when = Calendar.getInstance();
+        when.set(Calendar.HOUR_OF_DAY, Math.max(0, Math.min(23, hour)));
+        when.set(Calendar.MINUTE, Math.max(0, Math.min(59, minute)));
+        when.set(Calendar.SECOND, 0);
+        when.set(Calendar.MILLISECOND, 0);
+        if (when.getTimeInMillis() <= System.currentTimeMillis()) when.add(Calendar.DAY_OF_YEAR, 1);
+        if (alarm != null) alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, when.getTimeInMillis(), AlarmManager.INTERVAL_DAY, pending);
+    }
+
+    private void cancelReminder() {
+        getSharedPreferences("mill_hisab_reminders", MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
+        AlarmManager alarm = (AlarmManager) getSystemService(ALARM_SERVICE);
+        Intent intent = new Intent(this, DueReminderReceiver.class).setAction(DueReminderReceiver.ACTION_DAILY_REMINDER);
+        PendingIntent pending = PendingIntent.getBroadcast(this, 8103, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0));
+        if (alarm != null) alarm.cancel(pending);
+        pending.cancel();
+    }
+
+    private void restoreReminderSchedule() {
+        SharedPreferences p = getSharedPreferences("mill_hisab_reminders", MODE_PRIVATE);
+        if (p.getBoolean("enabled", false)) scheduleReminder(p.getInt("hour", 20), p.getInt("minute", 0));
     }
 
     private void startBiometricPrompt() {
@@ -197,6 +243,7 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
         setContentView(webView);
+        restoreReminderSchedule();
         webView.loadUrl("file:///android_asset/index.html");
     }
 
