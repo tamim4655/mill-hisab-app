@@ -76,6 +76,40 @@ body{background:#f4f7f5;padding-bottom:92px}
 .drawer-backdrop{position:fixed;inset:0;background:#061b10a6;z-index:100;display:none}.drawer-backdrop.open{display:block}.side-drawer{position:fixed;z-index:101;left:0;top:0;bottom:0;width:min(82vw,330px);background:#fff;transform:translateX(-105%);transition:transform .22s ease;padding:0 15px 25px;overflow:auto;box-shadow:10px 0 30px #0002}.side-drawer.open{transform:translateX(0)}.drawer-head{margin:0 -15px 12px;padding:25px 18px 18px;background:linear-gradient(140deg,#07552f,#0c9148);color:#fff}.drawer-head b{font-size:22px}.drawer-head p{font-size:12px;margin:3px 0;color:#d7f0df}.drawer-link{display:flex;align-items:center;gap:13px;width:100%;margin:3px 0;padding:11px 12px;background:transparent;color:#243c2c;text-align:left;border-radius:11px;font-weight:700}.drawer-link:active,.drawer-link:hover{background:#e5f6e9;color:#087b3d}.drawer-link span{width:25px;font-size:18px;color:#078441}
 .dark .app-header{background:linear-gradient(110deg,#062d1c,#07522e)}.dark .tabs{background:#17271e}.dark .tab{color:#aebdb3}.dark .tab.active{color:#75d89a}.dark .side-drawer{background:#192820}.dark .drawer-link{color:#e2eee5}.dark .drawer-link:active,.dark .drawer-link:hover{background:#254331}.dark .dashboard-lower .box{background:#192820}
 @media(max-width:650px){.app-header{padding:10px 12px}.dashboard-welcome{min-height:120px;padding:14px}.welcome-copy h2{font-size:20px}.welcome-art{width:78px;height:85px}.plate-art{width:70px;height:70px;font-size:35px}.dashboard-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.dashboard-cards .card{min-height:91px;padding:12px}.dashboard-lower{grid-template-columns:1fr}.tabs{padding:7px 5px}.tab{min-width:49px}.tab span{font-size:9px}}
+
+/* Reference-image inspired mobile layout */
+body{background:#f4f7f4}
+.app-header{max-width:none;width:100%;padding:12px max(14px,calc((100% - 1050px)/2));background:linear-gradient(115deg,#00602f,#008b3d 72%,#08753b);color:#fff;min-height:76px;box-shadow:0 3px 14px rgba(0,70,30,.16)}
+.app-header h1{color:#fff;font-size:23px}.app-header p{color:rgba(255,255,255,.82)}
+.brand-logo{width:46px;height:46px;border-radius:50%;background:#fff;color:#08783c;border:2px solid #d8f5d8}
+.menu-trigger,.theme-trigger{background:transparent;color:#fff;padding:8px 10px;font-size:22px}
+.wrap{padding:12px 12px 100px;max-width:1050px}
+.dashboard-welcome{min-height:132px;padding:18px 20px;border-radius:19px;background:linear-gradient(110deg,#087c36,#12a348);box-shadow:0 5px 16px rgba(0,100,40,.13)}
+.dashboard-welcome:after{right:-20px;top:-130px}
+.welcome-copy h2{font-size:23px}.welcome-copy p{margin-bottom:8px}.welcome-art{width:112px;height:100px}.plate-art{width:84px;height:84px;font-size:43px}
+.dashboard-toolbar{margin:17px 2px 8px}
+.dashboard-cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.dashboard-cards .card{min-height:108px;border:0;border-radius:16px;padding:13px;background:#fff;box-shadow:0 4px 14px rgba(0,50,20,.08)}
+.dashboard-cards .card:nth-child(1){background:linear-gradient(145deg,#1686f5,#0863d7)}.dashboard-cards .card:nth-child(2){background:linear-gradient(145deg,#39c900,#07933f)}.dashboard-cards .card:nth-child(3){background:linear-gradient(145deg,#ffb000,#f28a00)}.dashboard-cards .card:nth-child(4){background:linear-gradient(145deg,#ff6250,#e52336)}
+.dashboard-cards .card:nth-child(n+5){background:#fff}
+.dashboard-cards .card small,.dashboard-cards .card .num{color:#fff}.dashboard-cards .card:before{background:rgba(255,255,255,.12)}
+.dashboard-cards .card:nth-child(n+5) small{color:#71867a}.dashboard-cards .card:nth-child(n+5) .num{color:#087a50}
+.dashboard-lower{grid-template-columns:1.15fr .85fr}
+.dashboard-lower .box{border-radius:17px}
+.tabs{position:fixed;z-index:50;left:0;right:0;bottom:0;top:auto;margin:0 auto;width:min(100%,1050px);padding:8px 10px max(8px,env(safe-area-inset-bottom));border:1px solid #e6eee8;border-radius:24px 24px 0 0;background:rgba(255,255,255,.97);box-shadow:0 -5px 22px rgba(20,60,35,.1);justify-content:space-around;backdrop-filter:blur(15px)}
+.tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:5px 3px;border:0;background:transparent;color:#68736c;font-size:20px;border-radius:14px}
+.tab span{font-size:11px}.tab.active{background:#e8f7ec;color:#087a3c;box-shadow:none}
+.tab.plus-tab{flex:0 0 58px;max-width:58px;height:58px;margin-top:-21px;border-radius:50%;background:linear-gradient(145deg,#25c94d,#008d36);color:#fff;font-size:34px;box-shadow:0 5px 13px rgba(0,130,50,.28)}
+.tablewrap{border-radius:14px}
+.dark .app-header{background:linear-gradient(115deg,#063b24,#075b30)}.dark .dashboard-cards .card:nth-child(-n+4) small,.dark .dashboard-cards .card:nth-child(-n+4) .num{color:#fff}
+.dark .tabs{background:rgba(24,40,30,.97);border-color:#30483c}.dark .tab{color:#c4d2c8}.dark .tab.active{background:#244b32;color:#8ee5a8}
+@media(max-width:600px){
+.app-header{padding:10px 12px;min-height:68px}.brand-logo{width:42px;height:42px}.app-header h1{font-size:20px}
+.wrap{padding:10px 10px 100px}.dashboard-welcome{min-height:118px;padding:15px 14px}.welcome-copy h2{font-size:19px}.welcome-copy p{font-size:11px}.welcome-art{width:82px;height:84px}.plate-art{width:68px;height:68px;font-size:35px}
+.dashboard-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.dashboard-cards .card{min-height:99px;padding:12px}.dashboard-cards .num{font-size:21px}
+.dashboard-lower{grid-template-columns:1fr}.tabs{width:100%;border-radius:22px 22px 0 0}
+}
+
 </style></head><body><header class="app-header"><button class="menu-trigger" onclick="toggleDrawer()" aria-label="মেনু">☰</button><div class="brand"><div class="brand-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 29 32 7l26 22v27H6Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M23 56V37h18v19M18 29h28" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M27 19v14m-4-14v8m8-8v8" stroke="currentColor" stroke-width="2.5"/><path d="M45 18v15" stroke="#facc15" stroke-width="4" stroke-linecap="round"/></svg></div><div><h1>মিল হিসাব</h1><p>সঠিক হিসাব, শান্তির ঘর</p></div></div><button class="theme-trigger" onclick="toggleDark()" aria-label="ডার্ক মোড">☾</button></header><main class="wrap">
 <section id="home" class="panel active">
 <div class="dashboard-welcome"><div class="welcome-copy"><span class="eyebrow">স্বাগতম!</span><h2>আমাদের মিল হিসাব অ্যাপে</h2><p>সঠিক হিসাব রাখুন, ঝামেলামুক্ত থাকুন।</p><div class="welcome-actions"><button onclick="go('meals')">আজকের মিল লিখুন</button></div></div><div class="welcome-art"><div class="plate-art">🍛</div><span class="art-leaf leaf-one">🌿</span></div></div><div class="dashboard-toolbar"><div><span class="section-kicker">সারসংক্ষেপ</span><h2>মাসের হিসাব</h2></div><input type="month" id="homeMonth"></div>
