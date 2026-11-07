@@ -157,6 +157,95 @@ td input{width:100%;min-width:82px}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+/* ===== Modern restaurant-style redesign v2 ===== */
+:root{--green:#176b48;--green2:#0d5137;--mint:#eaf4ed;--ink:#1b3026;--muted:#718078;--line:#e5eae5;--bg:#f5f6f2;--white:#fff;--shadow:0 10px 30px rgba(26,55,38,.065)}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,"Noto Sans Bengali",sans-serif;letter-spacing:.01em}
+.app-header{position:sticky;top:0;z-index:30;min-height:72px;padding:10px max(16px,calc((100% - 1120px)/2));background:#123f2d;box-shadow:0 5px 18px rgba(8,35,22,.16)}
+.brand{gap:11px}.brand-logo{width:44px;height:44px;border:1px solid rgba(255,255,255,.5);background:#f0f6ed;color:#15583b;box-shadow:0 3px 10px #061e1230}
+.app-header h1{font-size:21px;font-weight:850;letter-spacing:-.4px}.app-header p{font-size:11px;opacity:.78}
+.menu-trigger,.theme-trigger{width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.11);font-size:20px}
+.wrap{max-width:1120px;padding:22px 18px 112px}
+.panel h2{font-size:20px;font-weight:850;color:var(--ink);letter-spacing:-.35px}
+.dashboard-welcome{position:relative;display:flex;align-items:center;justify-content:space-between;overflow:hidden;min-height:170px;padding:25px 28px;border-radius:24px;background:linear-gradient(115deg,#103f2d 0%,#176b48 58%,#36845a 100%);box-shadow:0 14px 28px rgba(15,70,43,.17)}
+.dashboard-welcome:before{content:"";position:absolute;width:260px;height:260px;border:1px solid #ffffff20;border-radius:50%;right:30px;top:-160px;box-shadow:0 0 0 28px #ffffff0c,0 0 0 58px #ffffff0a}
+.dashboard-welcome:after{content:"";position:absolute;width:120px;height:120px;border-radius:50%;background:#ffffff0c;right:120px;bottom:-85px}
+.welcome-copy,.welcome-art{position:relative;z-index:1}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.6px;color:#c7e7d0}
+.welcome-copy h2{font-size:25px;color:#fff;margin:7px 0 4px;font-weight:850}.welcome-copy p{color:#d4e7da;font-size:13px;margin:0 0 14px}
+.welcome-actions button{background:#e8c979;color:#203c2a;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:800;box-shadow:0 4px 12px #061e1230}
+.welcome-art{width:132px;height:125px;display:grid;place-items:center}.plate-art{width:104px;height:104px;display:grid;place-items:center;border-radius:50%;background:#ffffff18;border:1px solid #ffffff40;font-size:55px;box-shadow:inset 0 0 0 8px #ffffff0b}.art-leaf{display:none}
+.dashboard-toolbar{display:flex;align-items:center;justify-content:space-between;margin:25px 2px 12px}.section-kicker{display:block;color:#849087;font-size:10px;font-weight:850;letter-spacing:1px;text-transform:uppercase}.dashboard-toolbar h2{font-size:19px;margin:2px 0;color:var(--ink)}
+.dashboard-toolbar input{max-width:165px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.dashboard-cards{grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:0 0 17px}
+.dashboard-cards .card{min-height:112px;padding:17px 18px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:var(--shadow)}
+.dashboard-cards .card:before{width:74px;height:74px;right:-20px;top:-20px;background:#edf4ee}
+.dashboard-cards .card small{font-size:12px;color:#718078;font-weight:750}
+.dashboard-cards .num{font-size:25px;color:#1a6545;font-weight:900;margin-top:12px}
+.dashboard-cards .card:nth-child(n){background:#fff}.dashboard-cards .card:nth-child(n) small{color:#718078}.dashboard-cards .card:nth-child(n) .num{color:#1a6545}
+.dashboard-cards .card:nth-child(2) .num{color:#347b59}.dashboard-cards .card:nth-child(3) .num{color:#bd8530}.dashboard-cards .card:nth-child(4) .num{color:#347b59}.dashboard-cards .card:nth-child(5) .num{color:#bb5549}.dashboard-cards .card:nth-child(6) .num{color:#347b59}
+.dashboard-lower{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+.dashboard-lower .box,.box{background:#fff;border:1px solid var(--line);border-radius:19px;padding:19px;box-shadow:var(--shadow)}
+.box-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}.box-heading b,.quick-box>b{display:block;color:var(--ink);font-size:16px;margin-top:3px}
+.status-pill{background:#edf5ee;color:#347653;border-radius:30px;padding:6px 10px;font-size:10px;font-weight:850}
+#summary{background:#f6f8f4;border:1px solid #edf0e9;border-radius:13px;padding:15px;font-size:14px;color:#46564b;line-height:2}
+.quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:13px}
+.quick-actions button{min-height:58px;display:flex;align-items:center;gap:9px;text-align:left;background:#f4f7f2;color:#315540;border:1px solid #e7ede6;border-radius:13px;padding:10px 12px;font-size:12px;font-weight:800}
+.quick-actions button span{width:30px;height:30px;display:grid;place-items:center;border-radius:10px;background:#e2eee4;font-size:17px;color:#176b48}
+.tabs{position:fixed;z-index:50;left:0;right:0;bottom:0;top:auto;width:min(100%,1120px);padding:9px 16px max(9px,env(safe-area-inset-bottom));margin:auto;border:1px solid #e5eae4;border-bottom:0;border-radius:22px 22px 0 0;background:rgba(255,255,255,.97);box-shadow:0 -8px 28px rgba(25,54,36,.09);backdrop-filter:blur(18px)}
+.tab{flex:1;min-width:0;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:4px;background:transparent;color:#7b867e;border:0;border-radius:13px;font-size:20px}
+.tab span{font-size:10px;font-weight:800}.tab.active{background:#edf4ed;color:#176b48;box-shadow:none}
+.tab.plus-tab{flex:0 0 54px;width:54px;height:54px;min-width:54px;margin-top:-20px;border:4px solid #f5f6f2;border-radius:18px;background:#176b48;color:#fff;font-size:29px;box-shadow:0 6px 14px #123f2d30}
+.toolbar{padding:13px 15px;border:1px solid var(--line);border-radius:15px;background:#fff;box-shadow:0 5px 16px rgba(26,55,38,.035)}
+input,select{min-height:46px;padding:11px 13px;border-radius:12px;border:1px solid #dfe7df;background:#fff;color:#1b3026}
+button{min-height:44px;border-radius:12px;padding:10px 15px;background:#176b48;color:#fff;font-weight:800}
+.secondary{background:#eaf3eb;color:#205d3f}.danger{background:#fff0ed;color:#ad4038}
+.tablewrap{border:1px solid var(--line);border-radius:17px;background:#fff;box-shadow:var(--shadow);overflow:auto}
+table{min-width:570px}th{padding:14px 13px;background:#f0f5ef;color:#315b43;font-size:12px;font-weight:850;letter-spacing:.1px}
+td{padding:13px;border-bottom:1px solid #edf0eb;color:#34483b;font-size:13px;font-weight:600}
+tbody tr:nth-child(even){background:#fafbf9}tbody tr:hover{background:#f1f6f0}
+td input{border-radius:9px;background:#fff}
+.pill{background:#edf5ed;color:#286444}
+.hint{color:#718078;font-size:12px}
+.panel .row h2{margin:4px 0}
+#addForm{padding:16px}
+#addForm input{flex:1;min-width:130px}
+.pin-lock{background:#0c2118dd;backdrop-filter:blur(8px)}
+.pin-card{border:1px solid #e3eae2;border-radius:22px;box-shadow:0 20px 60px #0003}
+.side-drawer{background:#fbfcf9;border-right:1px solid var(--line);padding:0 14px 24px}
+.drawer-head{background:#123f2d;padding:26px 18px 20px}
+.drawer-link{min-height:47px;margin:4px 0;border-radius:12px;color:#344a3b;font-size:13px}
+.drawer-link span{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:#edf4ed;color:#176b48}
+.drawer-link:hover,.drawer-link:active{background:#edf4ed;color:#176b48}
+.panel{animation:fadeIn .18s ease}
+#backup .box{line-height:1.9}
+.dark{--ink:#e5eee7;--muted:#aab9ae;--line:#30483b;--bg:#101a14;--white:#1a2920;--mint:#244332;--shadow:0 10px 30px rgba(0,0,0,.22)}
+.dark .app-header{background:#0b2d1e}
+.dark .dashboard-welcome{background:linear-gradient(115deg,#0b2c1e,#124d34 60%,#216644)}
+.dark .dashboard-toolbar h2,.dark .panel h2,.dark .box-heading b,.dark .quick-box>b{color:#e5eee7}
+.dark .dashboard-toolbar input,.dark .dashboard-cards .card:nth-child(n),.dark .dashboard-lower .box,.dark .box,.dark .toolbar{background:#1a2920;border-color:#30483b}
+.dark .dashboard-cards .card small{color:#afc0b4}.dark .dashboard-cards .num{color:#a5dfb8!important}
+.dark .dashboard-cards .card:before{background:#244332}
+.dark #summary{background:#14231a;border-color:#30483b;color:#d5e2d8}
+.dark .quick-actions button{background:#20352a;border-color:#30483b;color:#e1ece4}
+.dark .quick-actions button span{background:#2b4b38;color:#b9e6c6}
+.dark .tabs{background:rgba(23,39,29,.97);border-color:#30483b}
+.dark .tab{color:#b4c2b8}.dark .tab.active{background:#244332;color:#a5dfb8}
+.dark .tab.plus-tab{border-color:#101a14;background:#238052;color:#fff}
+.dark .tablewrap{background:#1a2920;border-color:#30483b}
+.dark .tablewrap table{color:#e5eee7}
+.dark .tablewrap th{background:#294334;color:#e0eee4}
+.dark .tablewrap td{background:#1a2920;color:#e0eae2;border-color:#30483b}
+.dark .tablewrap tbody tr:nth-child(even) td{background:#1e3025}
+.dark .tablewrap td input{background:#14231a;color:#fff;-webkit-text-fill-color:#fff;border-color:#496451}
+.dark input,.dark select{background:#14231a;color:#e5eee7;border-color:#405a49}
+.dark .toolbar{color:#dce8df}.dark .hint{color:#b5c6ba}
+.dark .secondary{background:#294a35;color:#d5f0dd}.dark .danger{background:#512b29;color:#ffd5cf}
+.dark .side-drawer{background:#17271e;border-color:#30483b}.dark .drawer-link{color:#e0eae2}.dark .drawer-link span{background:#294334;color:#a5dfb8}
+.dark .status-pill{background:#294a35;color:#c8ebd1}.dark .pill{background:#294a35;color:#c8ebd1}
+@media(min-width:900px){.dashboard-cards{grid-template-columns:repeat(6,minmax(0,1fr))}.dashboard-cards .card{min-height:125px}.wrap{padding-top:26px}}
+@media(max-width:700px){.app-header{min-height:66px;padding:8px 12px}.brand-logo{width:40px;height:40px}.app-header h1{font-size:19px}.wrap{padding:13px 11px 105px}.dashboard-welcome{min-height:145px;padding:18px 16px;border-radius:19px}.welcome-copy h2{font-size:19px;max-width:245px}.welcome-copy p{font-size:11px;max-width:220px}.welcome-art{width:76px;height:82px}.plate-art{width:68px;height:68px;font-size:36px}.dashboard-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.dashboard-cards .card{min-height:98px;padding:13px;border-radius:15px}.dashboard-cards .num{font-size:22px;margin-top:9px}.dashboard-lower{grid-template-columns:1fr;gap:10px}.dashboard-lower .box,.box{padding:15px;border-radius:16px}.dashboard-toolbar{margin-top:20px}.dashboard-toolbar h2{font-size:17px}.dashboard-toolbar input{max-width:145px;min-width:125px}.tabs{width:100%;padding:7px 7px max(7px,env(safe-area-inset-bottom));border-radius:19px 19px 0 0}.tab{font-size:19px;min-height:47px}.tab span{font-size:9px}.tab.plus-tab{flex-basis:51px;width:51px;min-width:51px;height:51px;font-size:28px}.toolbar{padding:11px;gap:8px}.toolbar input,.toolbar select{flex:1;min-width:120px}.panel h2{font-size:18px}.tablewrap{border-radius:14px}.tablewrap th,.tablewrap td{font-size:13px;padding:11px 10px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
 </style></head><body><header class="app-header"><button class="menu-trigger" onclick="toggleDrawer()" aria-label="মেনু">☰</button><div class="brand"><div class="brand-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 29 32 7l26 22v27H6Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M23 56V37h18v19M18 29h28" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M27 19v14m-4-14v8m8-8v8" stroke="currentColor" stroke-width="2.5"/><path d="M45 18v15" stroke="#facc15" stroke-width="4" stroke-linecap="round"/></svg></div><div><h1>মিল হিসাব</h1><p>সঠিক হিসাব, শান্তির ঘর</p></div></div><button class="theme-trigger" onclick="toggleDark()" aria-label="ডার্ক মোড">☾</button></header><main class="wrap">
 <section id="home" class="panel active">
 <div class="dashboard-welcome"><div class="welcome-copy"><span class="eyebrow">স্বাগতম!</span><h2>আমাদের মিল হিসাব অ্যাপে</h2><p>সঠিক হিসাব রাখুন, ঝামেলামুক্ত থাকুন।</p><div class="welcome-actions"><button onclick="go('meals')">আজকের মিল লিখুন</button></div></div><div class="welcome-art"><div class="plate-art">🍛</div><span class="art-leaf leaf-one">🌿</span></div></div><div class="dashboard-toolbar"><div><span class="section-kicker">সারসংক্ষেপ</span><h2>মাসের হিসাব</h2></div><input type="month" id="homeMonth"></div>
