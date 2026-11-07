@@ -17,6 +17,9 @@ public class DueReminderReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (!ACTION_DAILY_REMINDER.equals(intent.getAction())) return;
+        android.content.SharedPreferences prefs = context.getSharedPreferences("mill_hisab_reminders", Context.MODE_PRIVATE);
+        if (!prefs.getBoolean("enabled", false) || !prefs.getBoolean("has_due", false)) return;
+        String dueMessage = prefs.getString("due_message", "বকেয়া হিসাব দেখে নিন।");
         if (Build.VERSION.SDK_INT >= 33 &&
                 context.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return;
         if (Build.VERSION.SDK_INT >= 26) {
