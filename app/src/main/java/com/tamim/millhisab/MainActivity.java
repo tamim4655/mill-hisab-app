@@ -40,8 +40,11 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
-        // Keep app content below Android status bar and above navigation bar.
-        // Prevent Android 15 edge-to-edge from drawing system icons over the header.
+        // Use the traditional non-edge-to-edge layout so Android system icons
+        // stay in the status bar and never overlap the WebView header.
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            getWindow().setDecorFitsSystemWindows(true);
+        }
         if (android.os.Build.VERSION.SDK_INT >= 21) {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
                     | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
@@ -52,15 +55,6 @@ public class MainActivity extends Activity {
         }
 
         webView = new WebView(this);
-        if (android.os.Build.VERSION.SDK_INT >= 20) {
-            webView.setOnApplyWindowInsetsListener((view, insets) -> {
-                int top = insets.getSystemWindowInsetTop();
-                int bottom = insets.getSystemWindowInsetBottom();
-                view.setPadding(0, top, 0, bottom);
-                return insets;
-            });
-            webView.requestApplyInsets();
-        }
         webView.setBackgroundColor(0xFFFFFFFF);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
