@@ -23,10 +23,12 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.WindowManager;
 import androidx.biometric.BiometricPrompt;
+import androidx.biometric.BiometricManager;
+import androidx.fragment.app.FragmentActivity;
 import androidx.core.content.ContextCompat;
 import java.util.concurrent.Executor;
 
-public class MainActivity extends Activity {
+public class MainActivity extends FragmentActivity {
     private WebView webView;
     private static final int REQUEST_NOTIFICATIONS = 8102;
     private static final String CHANNEL_ID = "mill_hisab_due_reminders";
@@ -152,8 +154,8 @@ public class MainActivity extends Activity {
                 .setTitle("মিল হিসাব নিরাপত্তা")
                 .setSubtitle("ফিঙ্গারপ্রিন্ট বা ফোনের নিরাপত্তা যাচাই করুন");
         if (Build.VERSION.SDK_INT >= 30) {
-            builder.setAllowedAuthenticators(BiometricPrompt.Authenticators.BIOMETRIC_WEAK |
-                    BiometricPrompt.Authenticators.DEVICE_CREDENTIAL);
+            builder.setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK |
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL);
         } else {
             builder.setAllowedAuthenticators(BiometricPrompt.Authenticators.BIOMETRIC_WEAK)
                     .setNegativeButtonText("PIN দিয়ে খুলুন");
