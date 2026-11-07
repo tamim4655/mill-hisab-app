@@ -408,6 +408,18 @@ main.wrap{padding-top:16px!important;padding-bottom:calc(100px + env(safe-area-i
 html{padding-top:0!important}
 header.app-header{padding-top:10px!important;padding-bottom:10px!important;min-height:0}
 @media(max-width:600px){header.app-header{padding:10px 16px!important;min-height:0}main.wrap{padding-top:14px!important}}
+
+/* Final compact header sizing for small Android screens */
+@media(max-width:600px){
+ header.app-header{padding:4px 12px!important;min-height:0!important;gap:8px!important;align-items:center!important}
+ header.app-header .brand{gap:8px!important;min-width:0!important}
+ header.app-header .brand-logo{width:40px!important;height:40px!important;flex:0 0 40px!important;border-radius:50%!important}
+ header.app-header .brand-logo svg{width:28px!important;height:28px!important}
+ header.app-header h1{font-size:19px!important;line-height:1.15!important;margin:0!important}
+ header.app-header p{font-size:10px!important;line-height:1.2!important;margin:2px 0 0!important}
+ header.app-header .menu-trigger,header.app-header .theme-trigger{width:36px!important;height:36px!important;min-width:36px!important;flex:0 0 36px!important;padding:0!important;font-size:19px!important}
+ main.wrap{padding-top:8px!important}
+}
 </style></head><body><header class="app-header"><button class="menu-trigger" onclick="toggleDrawer()" aria-label="মেনু">☰</button><div class="brand"><div class="brand-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 29 32 7l26 22v27H6Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M23 56V37h18v19M18 29h28" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M27 19v14m-4-14v8m8-8v8" stroke="currentColor" stroke-width="2.5"/><path d="M45 18v15" stroke="#facc15" stroke-width="4" stroke-linecap="round"/></svg></div><div><h1>মিল হিসাব</h1><p>সঠিক হিসাব, শান্তির ঘর</p></div></div><button class="theme-trigger" onclick="toggleDark()" aria-label="ডার্ক মোড">☾</button></header><main class="wrap">
 <section id="home" class="panel active">
 <div class="dashboard-welcome"><div class="welcome-copy"><span class="eyebrow">স্বাগতম!</span><h2>আমাদের মিল হিসাব অ্যাপে</h2><p>সঠিক হিসাব রাখুন, ঝামেলামুক্ত থাকুন।</p><div class="welcome-actions"><button onclick="go('meals')">আজকের মিল লিখুন</button></div></div><div class="welcome-art"><div class="plate-art">🍛</div><span class="art-leaf leaf-one">🌿</span></div></div><div class="dashboard-toolbar"><div><span class="section-kicker">সারসংক্ষেপ</span><h2>মাসের হিসাব</h2></div><input type="month" id="homeMonth"></div>
