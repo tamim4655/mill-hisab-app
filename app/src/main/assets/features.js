@@ -32,3 +32,95 @@ function sendDueNotification(){if(localStorage.getItem(REM)!=="1"||!window.Andro
 function setup(){const b=document.getElementById("biometricEnabled"),r=document.getElementById("reminderEnabled"),l=document.getElementById("languageSelect");if(b){b.checked=localStorage.getItem(BIO)==="1";b.onchange=()=>{if(b.checked&&!localStorage.getItem("mill_hisab_pin_v1")){b.checked=false;alert("বায়োমেট্রিক চালুর আগে একটি PIN সেট করুন, যাতে বিকল্পভাবে আনলক করতে পারেন।");return;}localStorage.setItem(BIO,b.checked?"1":"0");if(b.checked)window.testBiometric();};}if(r){r.checked=localStorage.getItem(REM)==="1";r.onchange=()=>{localStorage.setItem(REM,r.checked?"1":"0");if(r.checked&&window.AndroidBridge){AndroidBridge.requestNotificationPermission();scheduleReminder();}else if(window.AndroidBridge)AndroidBridge.cancelDailyReminder();};}const rt=document.getElementById("reminderTime");if(rt){rt.value=localStorage.getItem(REMTIME)||"20:00";rt.onchange=()=>{localStorage.setItem(REMTIME,rt.value);scheduleReminder();};}if(l)l.value=localStorage.getItem(LANG)||"bn";document.querySelectorAll(".dash-pref").forEach(x=>x.onchange=()=>{localStorage.setItem(DASH,JSON.stringify([...document.querySelectorAll(".dash-pref")].map(y=>y.checked)));prefs();});document.getElementById("activityFilter")?.addEventListener("change",activityView);document.getElementById("customerSearch")?.addEventListener("input",filterCustomers);document.getElementById("customerStatus")?.addEventListener("change",filterCustomers);const excel=document.querySelector("#excel .toolbar");if(excel&&!document.getElementById("fullExportButton")){const b=document.createElement("button");b.id="fullExportButton";b.className="secondary";b.textContent="সম্পূর্ণ হিসাব CSV";b.onclick=window.exportFullExcel;excel.appendChild(b);}setAccent(localStorage.getItem(ACCENT)||"green");prefs();translate();activityView();filterCustomers();window.home();if(localStorage.getItem(REM)==="1")scheduleReminder();sendDueNotification();if(localStorage.getItem(BIO)==="1"&&window.AndroidBridge){document.getElementById("pinLock")?.classList.remove("hidden");AndroidBridge.authenticateBiometric();}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",setup);else setup();
 })();
+
+// Safety, richer reports, and faster monthly calculations (v2)
+(function(){
+"use strict";
+const priorSave=window.save;
+const dataCache=new Map();
+function invalidate(){dataCache.clear();}
+window.save=function(){invalidate();return priorSave.apply(this,arguments);};
+
+// Recycle bin: deleted payments and expenses remain recoverable until explicitly cleared.
+function ensureRecycleBin(){if(!Array.isArray(db.recycleBin))db.recycleBin=[];}
+const oldDeletePayment=window.delPay;
+window.delPay=function(id){
+ const item=(db.payments||[]).find(x=>String(x.id)===String(id));
+ if(!item)return;
+ if(!confirm("এই পেমেন্টটি রিসাইকেল বিনে পাঠাবেন? পরে পুনরুদ্ধার করা যাবে।"))return;
+ ensureRecycleBin();db.recycleBin.push({id:"R"+Date.now()+Math.random().toString(36).slice(2,6),kind:"payment",deletedAt:new Date().toISOString(),record:item});
+ db.payments=db.payments.filter(x=>String(x.id)!==String(id));save();renderRecycleBin();
+};
+const oldDeleteExpense=window.deleteExpense;
+window.deleteExpense=function(id){
+ const item=(db.expenses||[]).find(x=>String(x.id)===String(id));
+ if(!item)return;
+ if(!confirm("এই খরচটি রিসাইকেল বিনে পাঠাবেন? পরে পুনরুদ্ধার করা যাবে।"))return;
+ ensureRecycleBin();db.recycleBin.push({id:"R"+Date.now()+Math.random().toString(36).slice(2,6),kind:"expense",deletedAt:new Date().toISOString(),record:item});
+ db.expenses=db.expenses.filter(x=>String(x.id)!==String(id));save();renderRecycleBin();
+};
+window.restoreRecycleItem=function(id){
+ ensureRecycleBin();const i=db.recycleBin.findIndex(x=>String(x.id)===String(id));if(i<0)return;
+ const item=db.recycleBin[i],target=item.kind==="payment"?"payments":item.kind==="expense"?"expenses":null;
+ if(!target)return alert("এই ধরনের তথ্য পুনরুদ্ধার করা যাচ্ছে না।");
+ if(!Array.isArray(db[target]))db[target]=[];
+ if(db[target].some(x=>String(x.id)===String(item.record.id)))return alert("একই তথ্য আগে থেকেই আছে।");
+ db[target].push(item.record);db.recycleBin.splice(i,1);save();renderRecycleBin();alert("তথ্য পুনরুদ্ধার হয়েছে।");
+};
+window.permanentlyDeleteRecycleItem=function(id){
+ ensureRecycleBin();if(!confirm("এই তথ্য স্থায়ীভাবে মুছে ফেলবেন? পরে আর ফেরানো যাবে না।"))return;
+ db.recycleBin=db.recycleBin.filter(x=>String(x.id)!==String(id));save();renderRecycleBin();
+};
+window.clearRecycleBin=function(){
+ ensureRecycleBin();if(!db.recycleBin.length)return alert("রিসাইকেল বিন খালি।");
+ if(!confirm("রিসাইকেল বিনের সব তথ্য স্থায়ীভাবে মুছে ফেলবেন?"))return;
+ db.recycleBin=[];save();renderRecycleBin();
+};
+function renderRecycleBin(){
+ const host=document.getElementById("recycleBinRows");if(!host)return;ensureRecycleBin();
+ host.innerHTML=db.recycleBin.length?db.recycleBin.slice().reverse().map(x=>{
+  const r=x.record||{},label=x.kind==="payment"?"পেমেন্ট":"খরচ",who=x.kind==="payment"?((db.customers.find(c=>c.id===r.cid)||{}).name||"অজানা সদস্য"):(r.title||r.category||"খরচ");
+  return '<div class="recycle-item"><div><b>'+esc(label)+" — "+esc(who)+'</b><small>'+esc(r.date||"")+' · '+money(r.amount||0)+'</small></div><div class="recycle-actions"><button class="secondary" onclick="restoreRecycleItem(\''+esc(x.id)+'\')">ফেরত আনুন</button><button class="danger" onclick="permanentlyDeleteRecycleItem(\''+esc(x.id)+'\')">স্থায়ীভাবে মুছুন</button></div></div>';
+ }).join(""):'<p class="hint">রিসাইকেল বিন খালি। মুছে ফেলা পেমেন্ট ও খরচ এখানে পাওয়া যাবে।</p>';
+}
+function installRecycleBin(){
+ const section=document.getElementById("activity");if(!section||document.getElementById("recycleBinBox"))return;
+ const box=document.createElement("div");box.id="recycleBinBox";box.className="box";box.innerHTML='<div class="box-heading"><div><small class="section-kicker">DATA RECOVERY</small><b>♻️ রিসাইকেল বিন</b></div><button class="danger" onclick="clearRecycleBin()">সব স্থায়ীভাবে মুছুন</button></div><p class="hint">মুছে ফেলা পেমেন্ট ও খরচ এখান থেকে ফিরিয়ে আনা যাবে। স্থায়ীভাবে মুছে দিলে আর ফেরানো যাবে না।</p><div id="recycleBinRows"></div>';
+ section.appendChild(box);renderRecycleBin();
+}
+
+// Optimized month aggregation: one pass through meal dates and payments, cached until data changes.
+const originalData=window.data;
+window.data=function(month){
+ const m=String(month||"");if(dataCache.has(m))return dataCache.get(m);
+ const limit=m<monthNow()?dim(m):m===monthNow()?new Date().getDate():0,end=monthEnd(m);
+ const monthMeals=Object.create(null),allMeals=Object.create(null),paidToDate=Object.create(null),paidThisMonth=Object.create(null);
+ for(const date of Object.keys(db.meals||{})){
+  if(date>end)continue;const day=db.meals[date]||{};
+  for(const cid of Object.keys(day)){const n=Number(day[cid])||0;allMeals[cid]=(allMeals[cid]||0)+n;if(date.startsWith(m)&&Number(date.slice(8,10))<=limit)monthMeals[cid]=(monthMeals[cid]||0)+n;}
+ }
+ for(const p of db.payments||[]){const amount=Number(p.amount)||0;if(p.date<=end)paidToDate[p.cid]=(paidToDate[p.cid]||0)+amount;if(p.date.startsWith(m))paidThisMonth[p.cid]=(paidThisMonth[p.cid]||0)+amount;}
+ const rows=(db.customers||[]).map(c=>{const meals=monthMeals[c.id]||0,bill=meals*(Number(c.rate)||0),paid=paidToDate[c.id]||0,totalBill=(Number(c.openingDue)||0)+(allMeals[c.id]||0)*(Number(c.rate)||0),paidMonth=paidThisMonth[c.id]||0;return{...c,meals,bill,paidMonth,paid,totalBill,due:totalBill-paid,monthDue:bill-paidMonth};});
+ dataCache.set(m,rows);if(dataCache.size>8)dataCache.delete(dataCache.keys().next().value);return rows;
+};
+window.totals=function(m){const rows=data(m);return{rows,meals:rows.reduce((s,x)=>s+x.meals,0),bill:rows.reduce((s,x)=>s+x.bill,0),paid:rows.reduce((s,x)=>s+x.paidMonth,0),due:rows.reduce((s,x)=>s+x.due,0)};};
+
+// Add a compact member-wise comparison to the existing monthly report.
+const priorReport=window.report;
+window.report=function(){
+ priorReport();const host=document.getElementById("reportCharts");if(!host)return;
+ const m=document.getElementById("reportMonth")?.value||monthNow(),rows=data(m).filter(x=>x.active!==false).slice().sort((a,b)=>b.due-a.due);
+ let panel=document.getElementById("memberReportChart");
+ if(!panel){panel=document.createElement("div");panel.id="memberReportChart";panel.className="box member-report";host.appendChild(panel);}
+ const top=rows.slice(0,8),max=Math.max(1,...top.map(x=>Math.max(0,Number(x.due)||0)));
+ panel.innerHTML='<div class="box-heading"><div><small class="section-kicker">MEMBER SUMMARY</small><b>সদস্যভিত্তিক বকেয়া তুলনা</b></div><span class="status-pill">'+rows.length+' জন</span></div>'+
+ (top.length?top.map(x=>'<div class="member-report-row"><span>'+esc(x.name)+'</span><div class="feature-track"><div class="feature-fill" style="width:'+Math.max(0,Math.min(100,(Number(x.due)||0)/max*100))+'%"></div></div><b>'+money(x.due)+'</b></div>').join(""):'<p class="hint">এই মাসে কোনো সদস্যের তথ্য নেই।</p>')+
+ '<p class="hint">সর্বোচ্চ বকেয়া থাকা প্রথম ৮ জন দেখানো হয়েছে। সম্পূর্ণ তালিকা নিচের রিপোর্ট টেবিলে আছে।</p>';
+};
+const priorRender=window.render;
+window.render=function(){priorRender();renderRecycleBin();};
+const style=document.createElement("style");
+style.textContent='.recycle-item,.member-report-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.recycle-item:last-child,.member-report-row:last-child{border-bottom:0}.recycle-item small{display:block;color:var(--muted);font-size:12px}.recycle-actions{display:flex;gap:6px;flex-wrap:wrap}.recycle-actions button{font-size:12px;padding:8px 10px}.member-report{margin-top:12px}.member-report-row>span{width:27%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.member-report-row .feature-track{flex:1}.member-report-row>b{min-width:82px;text-align:right;font-size:13px}@media(max-width:480px){.recycle-item{align-items:flex-start;flex-direction:column}.member-report-row>span{width:30%}.member-report-row>b{min-width:70px;font-size:12px}}';
+document.head.appendChild(style);
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installRecycleBin);else installRecycleBin();
+})();
