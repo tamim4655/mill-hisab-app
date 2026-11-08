@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 concurrency:
   group: android-apk-${{ github.ref }}
@@ -43,6 +45,9 @@ jobs:
           echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
           yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Check JavaScript syntax
+        run: node --check app/src/main/assets/features.js
 
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
