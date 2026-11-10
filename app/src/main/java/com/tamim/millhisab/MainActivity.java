@@ -27,6 +27,14 @@ import androidx.biometric.BiometricManager;
 import androidx.fragment.app.FragmentActivity;
 import androidx.core.content.ContextCompat;
 import java.util.concurrent.Executor;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends FragmentActivity {
     private WebView webView;
@@ -83,6 +91,54 @@ public class MainActivity extends FragmentActivity {
         @JavascriptInterface
         public void cancelDailyReminder() {
             runOnUiThread(() -> cancelReminder());
+        }
+
+        @JavascriptInterface
+        public synchronized void saveAutoBackup(String json) {
+            if (json == null || json.length() == 0 || json.length() > 10 * 1024 * 1024) return;
+            File dir = new File(getFilesDir(), "auto-backups");
+            if (!dir.exists() && !dir.mkdirs()) return;
+            String day = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+            File target = new File(dir, "backup-" + day + ".json");
+            File temp = new File(dir, target.getName() + ".tmp");
+            try {
+                FileOutputStream out = new FileOutputStream(temp);
+                out.write(json.getBytes("UTF-8")); out.flush(); out.close();
+                if (target.exists()) target.delete();
+                if (!temp.renameTo(target)) {
+                    FileOutputStream fallback = new FileOutputStream(target);
+                    fallback.write(json.getBytes("UTF-8")); fallback.flush(); fallback.close(); temp.delete();
+                }
+                File[] backups = dir.listFiles((folder, name) -> name.startsWith("backup-") && name.endsWith(".json"));
+                if (backups != null) {
+                    Arrays.sort(backups, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+                    for (int i = 30; i < backups.length; i++) backups[i].delete();
+                }
+            } catch (Exception ignored) { temp.delete(); }
+        }
+
+        @JavascriptInterface
+        public String getLatestAutoBackup() {
+            File dir = new File(getFilesDir(), "auto-backups");
+            File[] backups = dir.listFiles((folder, name) -> name.startsWith("backup-") && name.endsWith(".json"));
+            if (backups == null || backups.length == 0) return "";
+            Arrays.sort(backups, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+            try {
+                FileInputStream in = new FileInputStream(backups[0]);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[8192]; int count;
+                while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
+                in.close(); return out.toString("UTF-8");
+            } catch (Exception ignored) { return ""; }
+        }
+
+        @JavascriptInterface
+        public String getAutoBackupInfo() {
+            File dir = new File(getFilesDir(), "auto-backups");
+            File[] backups = dir.listFiles((folder, name) -> name.startsWith("backup-") && name.endsWith(".json"));
+            if (backups == null || backups.length == 0) return "";
+            Arrays.sort(backups, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+            return new SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(new Date(backups[0].lastModified()));
         }
 
         @JavascriptInterface
