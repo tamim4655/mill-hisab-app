@@ -181,7 +181,7 @@ window.renderExcel=function(){
    const date=month+"-"+String(day).padStart(2,"0");
    const count=day<=limit?meal(date,customer):0;
    if(excelEditMode&&day<=limit){
-    return '<td><input class="excel-edit-cell" type="number" min="0" max="100" step="0.5" inputmode="decimal" aria-label="'+esc(customer.name)+' '+day+' তারিখের মিল" data-date="'+date+'" data-cid="'+esc(customer.id)+'" value="'+count+'"></td>';
+    return '<td><input class="excel-edit-cell" type="number" min="0" max="2" step="1" inputmode="numeric" aria-label="'+esc(customer.name)+' '+day+' তারিখের মিল" data-date="'+date+'" data-cid="'+esc(customer.id)+'" value="'+count+'"></td>';
    }
    return "<td>"+count+"</td>";
   }).join("");
