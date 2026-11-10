@@ -185,8 +185,8 @@ window.renderExcel=function(){
    }
    return "<td>"+count+"</td>";
   }).join("");
-  return "<tr><td>"+esc(customer.name)+"</td>"+daily+
-   "<td>"+customer.meals+"</td><td>"+money(customer.rate)+"</td><td>"+money(customer.bill)+"</td><td>"+money(customer.due)+"</td></tr>";
+  return "<tr><td><input class=\"excel-edit excel-name\" type=\"text\" aria-label=\"কাস্টমারের নাম\" value=\""+esc(customer.name)+"\" data-cid=\""+esc(customer.id)+"\" data-field=\"name\" onchange=\"editExcelCustomer(this)\"></td>"+daily+
+   "<td>"+customer.meals+"</td><td><input class=\"excel-edit excel-rate\" type=\"number\" min=\"0\" step=\"0.01\" value=\""+Number(customer.rate||0)+"\" data-cid=\""+esc(customer.id)+"\" data-field=\"rate\" onchange=\"editExcelCustomer(this)\"></td><td>"+money(customer.bill)+"</td><td><input class=\"excel-edit excel-opening\" type=\"number\" min=\"0\" step=\"0.01\" value=\""+Number(customer.openingDue||0)+"\" data-cid=\""+esc(customer.id)+"\" data-field=\"openingDue\" onchange=\"editExcelCustomer(this)\"></td><td>"+money(customer.due)+"</td></tr>";
  }).join("");
  if(excelEditMode){
   body.querySelectorAll(".excel-edit-cell").forEach(input=>{
