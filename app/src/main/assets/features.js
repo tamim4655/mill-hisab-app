@@ -132,19 +132,11 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 "use strict";
 const originalExcelRender=window.renderExcel;
 if(typeof originalExcelRender!=="function")return;
-let excelEditMode=false;
+const excelEditMode=true;
 function installExcelEditorUI(){
  const toolbar=document.querySelector("#excel .toolbar");
  if(!toolbar)return;
- let button=document.getElementById("excelEditToggle");
- if(!button){
-  button=document.createElement("button");
-  button.id="excelEditToggle";
-  button.className="secondary";
-  const exportButton=toolbar.querySelector("button[onclick=\"exportExcel()\"]");
-  toolbar.insertBefore(button,exportButton||toolbar.lastElementChild);
- }
- button.textContent=excelEditMode?"সম্পাদনা বন্ধ করুন":"✏️ ঘর এডিট করুন";
+ document.getElementById("excelEditToggle")?.remove();
  let hint=document.getElementById("excelEditHint");
  if(!hint){
   hint=document.createElement("p");
@@ -154,10 +146,7 @@ function installExcelEditorUI(){
   if(intro)intro.insertAdjacentElement("afterend",hint);
   else toolbar.insertAdjacentElement("afterend",hint);
  }
- hint.textContent=excelEditMode
-  ?"যে দিনের মিল বদলাতে চান সেই ঘরে সংখ্যা লিখুন। ঘর থেকে বের হলেই সেভ হবে। মোট, বিল ও বকেয়া স্বয়ংক্রিয়ভাবে হিসাব হবে।"
-  :"রিপোর্টের দৈনিক মিলের ঘর সম্পাদনা করতে “ঘর এডিট করুন” চাপুন।";
- button.onclick=function(){excelEditMode=!excelEditMode;window.renderExcel();};
+ hint.textContent="Google Sheets-এর মতো সরাসরি মিলের ঘরে টাচ করে সংখ্যা লিখুন। Enter চাপলে পরের দিনের ঘরে যাবেন; ঘর পরিবর্তন হলেই সেভ হবে। মোট, বিল ও বকেয়া নিজে থেকে আপডেট হবে।";
 }
 window.saveExcelMeal=function(date,cid,rawValue){
  const value=String(rawValue??"").trim();
@@ -201,7 +190,12 @@ window.renderExcel=function(){
   body.querySelectorAll(".excel-edit-cell").forEach(input=>{
    input.addEventListener("change",()=>window.saveExcelMeal(input.dataset.date,input.dataset.cid,input.value));
    input.addEventListener("keydown",event=>{
-    if(event.key==="Enter"){event.preventDefault();input.blur();}
+    if(event.key==="Enter"){
+     event.preventDefault();
+     input.blur();
+     const cells=[...body.querySelectorAll(".excel-edit-cell")],next=cells[cells.indexOf(input)+1];
+     if(next)next.focus();
+    }
     if(event.key==="Escape"){event.preventDefault();window.renderExcel();}
    });
   });
