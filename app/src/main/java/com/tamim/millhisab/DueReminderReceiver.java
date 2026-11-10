@@ -17,6 +17,9 @@ public class DueReminderReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (!ACTION_DAILY_REMINDER.equals(intent.getAction())) return;
+        android.content.SharedPreferences prefs = context.getSharedPreferences("mill_hisab_reminders", Context.MODE_PRIVATE);
+        if (!prefs.getBoolean("enabled", false) || !prefs.getBoolean("has_due", false)) return;
+        String dueMessage = prefs.getString("due_message", "বকেয়া হিসাব দেখে নিন।");
         if (Build.VERSION.SDK_INT >= 33 &&
                 context.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return;
         if (Build.VERSION.SDK_INT >= 26) {
@@ -32,7 +35,7 @@ public class DueReminderReceiver extends BroadcastReceiver {
                 ? new Notification.Builder(context, CHANNEL_ID) : new Notification.Builder(context);
         b.setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle("মিল হিসাবের দৈনিক মনে করিয়ে দেওয়া")
-                .setContentText("আজকের মিল, জমা ও বকেয়ার হিসাব দেখে নিন।")
+                .setContentText(dueMessage)
                 .setContentIntent(pending).setAutoCancel(true);
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) nm.notify(8103, b.build());
