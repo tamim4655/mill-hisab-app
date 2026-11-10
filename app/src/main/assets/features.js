@@ -124,3 +124,90 @@ style.textContent='.recycle-item,.member-report-row{display:flex;align-items:cen
 document.head.appendChild(style);
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installRecycleBin);else installRecycleBin();
 })();
+
+
+// Google Sheets-style editing for the combined Excel view.
+// Only source values (daily meal counts) are editable; calculated totals stay read-only.
+(function(){
+"use strict";
+const originalExcelRender=window.renderExcel;
+if(typeof originalExcelRender!=="function")return;
+let excelEditMode=false;
+function installExcelEditorUI(){
+ const toolbar=document.querySelector("#excel .toolbar");
+ if(!toolbar)return;
+ let button=document.getElementById("excelEditToggle");
+ if(!button){
+  button=document.createElement("button");
+  button.id="excelEditToggle";
+  button.className="secondary";
+  const exportButton=toolbar.querySelector("button[onclick=\"exportExcel()\"]");
+  toolbar.insertBefore(button,exportButton||toolbar.lastElementChild);
+ }
+ button.textContent=excelEditMode?"সম্পাদনা বন্ধ করুন":"✏️ ঘর এডিট করুন";
+ let hint=document.getElementById("excelEditHint");
+ if(!hint){
+  hint=document.createElement("p");
+  hint.id="excelEditHint";
+  hint.className="hint";
+  const intro=document.querySelector("#excel > .hint");
+  if(intro)intro.insertAdjacentElement("afterend",hint);
+  else toolbar.insertAdjacentElement("afterend",hint);
+ }
+ hint.textContent=excelEditMode
+  ?"যে দিনের মিল বদলাতে চান সেই ঘরে সংখ্যা লিখুন। ঘর থেকে বের হলেই সেভ হবে। মোট, বিল ও বকেয়া স্বয়ংক্রিয়ভাবে হিসাব হবে।"
+  :"রিপোর্টের দৈনিক মিলের ঘর সম্পাদনা করতে “ঘর এডিট করুন” চাপুন।";
+ button.onclick=function(){excelEditMode=!excelEditMode;window.renderExcel();};
+}
+window.saveExcelMeal=function(date,cid,rawValue){
+ const value=String(rawValue??"").trim();
+ const amount=value===""?0:Number(value);
+ if(!Number.isFinite(amount)||amount<0||amount>100){
+  alert("মিলের সংখ্যা ০ থেকে ১০০-এর মধ্যে দিন।");
+  window.renderExcel();
+  return;
+ }
+ const customer=(db.customers||[]).find(c=>String(c.id)===String(cid));
+ if(!customer)return alert("সদস্যের তথ্য পাওয়া যায়নি।");
+ if(!db.meals||typeof db.meals!=="object")db.meals={};
+ if(!db.meals[date]||typeof db.meals[date]!=="object")db.meals[date]={};
+ db.meals[date][cid]=amount;
+ save();
+};
+window.renderExcel=function(){
+ originalExcelRender();
+ installExcelEditorUI();
+ const monthInput=document.getElementById("excelMonth");
+ const body=document.getElementById("excelRows");
+ if(!monthInput||!body)return;
+ const month=monthInput.value||monthNow();
+ const days=dim(month);
+ const limit=month<monthNow()?days:month===monthNow()?new Date().getDate():0;
+ const rows=window.data(month);
+ body.innerHTML=rows.map(customer=>{
+  const daily=Array.from({length:days},(_,index)=>{
+   const day=index+1;
+   const date=month+"-"+String(day).padStart(2,"0");
+   const count=day<=limit?meal(date,customer):0;
+   if(excelEditMode&&day<=limit){
+    return '<td><input class="excel-edit-cell" type="number" min="0" max="100" step="0.5" inputmode="decimal" aria-label="'+esc(customer.name)+' '+day+' তারিখের মিল" data-date="'+date+'" data-cid="'+esc(customer.id)+'" value="'+count+'"></td>';
+   }
+   return "<td>"+count+"</td>";
+  }).join("");
+  return "<tr><td>"+esc(customer.name)+"</td>"+daily+
+   "<td>"+customer.meals+"</td><td>"+money(customer.rate)+"</td><td>"+money(customer.bill)+"</td><td>"+money(customer.due)+"</td></tr>";
+ }).join("");
+ if(excelEditMode){
+  body.querySelectorAll(".excel-edit-cell").forEach(input=>{
+   input.addEventListener("change",()=>window.saveExcelMeal(input.dataset.date,input.dataset.cid,input.value));
+   input.addEventListener("keydown",event=>{
+    if(event.key==="Enter"){event.preventDefault();input.blur();}
+    if(event.key==="Escape"){event.preventDefault();window.renderExcel();}
+   });
+  });
+ }
+};
+const style=document.createElement("style");
+style.textContent="#excel .excel-edit-cell{width:62px;min-width:54px;min-height:36px;padding:5px 6px;text-align:center;border:1px solid #83c99e;border-radius:8px;background:#f2fff6;font-weight:750;color:#155d34}#excel .excel-edit-cell:focus{outline:2px solid #16864b;outline-offset:1px}.dark #excel .excel-edit-cell{background:#173b27;color:#d9f4e1;border-color:#4a9566}";
+document.head.appendChild(style);
+})();
