@@ -536,7 +536,7 @@ function editExcelMeal(input){
 function editExcelCustomer(input){
  let c=db.customers.find(x=>x.id===input.dataset.cid),field=input.dataset.field;if(!c)return;
  if(field==='name'){let name=input.value.trim();if(!name){alert('কাস্টমারের নাম খালি রাখা যাবে না');renderExcel();return;}c.name=name;}
- else{let n=Number(input.value);if(!Number.isFinite(n)||n<0){alert('০ বা তার বেশি সঠিক সংখ্যা দিন');renderExcel();return;}c[field]=n;}
+ else{let n=Number(input.value);if(!Number.isFinite(n)||n<0){alert('০ বা তার বেশি সঠিক সংখ্যা দিন');renderExcel();return;}if(field==='rate'){db.mealRates=db.mealRates||{};Object.keys(db.meals||{}).filter(d=>d<=today()).forEach(d=>{if(!db.mealRates[d])db.mealRates[d]={};if(db.mealRates[d][c.id]===undefined)db.mealRates[d][c.id]=Number(c.rate)||0});}c[field]=n;}
  save();
 }
 function addExcelCustomer(){
