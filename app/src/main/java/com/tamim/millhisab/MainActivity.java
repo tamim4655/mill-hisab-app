@@ -68,6 +68,14 @@ public class MainActivity extends FragmentActivity {
         }
 
         @JavascriptInterface
+        public void updateDueReminder(boolean hasDue, String message) {
+            getSharedPreferences("mill_hisab_reminders", MODE_PRIVATE).edit()
+                    .putBoolean("has_due", hasDue)
+                    .putString("due_message", message == null ? "বকেয়া হিসাব দেখে নিন।" : message)
+                    .apply();
+        }
+
+        @JavascriptInterface
         public void scheduleDailyReminder(int hour, int minute) {
             runOnUiThread(() -> scheduleReminder(hour, minute));
         }
