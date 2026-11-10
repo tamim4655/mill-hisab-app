@@ -491,7 +491,7 @@ function renderLedger(){
  let end=monthEnd(m),priorEnd=monthEnd(monthBefore(m)),priorDue=customerTotalBill(cid,priorEnd)-db.payments.filter(p=>p.cid===cid&&p.date<=priorEnd).reduce((a,p)=>a+p.amount,0);
  let monthMeals=0,events=[];
  let lim=m<monthNow()?dim(m):m===monthNow()?new Date().getDate():0;
- for(let d=1;d<=lim;d++){let date=m+'-'+String(d).padStart(2,'0'),n=meal(date,c);if(n){monthMeals+=n;events.push({date,desc:'মিল',meals:n,bill:n*c.rate,paid:0})}}
+ for(let d=1;d<=lim;d++){let date=m+'-'+String(d).padStart(2,'0'),n=meal(date,c);if(n){monthMeals+=n;events.push({date,desc:'মিল',meals:n,bill:n*mealRate(date,c),paid:0})}}
  db.payments.filter(p=>p.cid===cid&&p.date.startsWith(m)).forEach(p=>events.push({date:p.date,desc:'জমা ('+p.method+')',meals:'—',bill:0,paid:p.amount}));
  events.sort((a,b)=>a.date.localeCompare(b.date));
  let balance=priorDue,rows='<tr><td>'+monthBefore(m)+'</td><td>আগের মাসের বকেয়া</td><td>—</td><td>—</td><td>—</td><td>'+money(balance)+'</td></tr>';
