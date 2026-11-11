@@ -23,19 +23,110 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.WindowManager;
 import androidx.biometric.BiometricPrompt;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
+import org.json.JSONObject;
+import com.google.gson.Gson;
+import java.util.HashMap;
+import java.util.Map;
 import androidx.biometric.BiometricManager;
 import androidx.fragment.app.FragmentActivity;
 import androidx.core.content.ContextCompat;
 import java.util.concurrent.Executor;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends FragmentActivity {
     private WebView webView;
+    private static final int RC_GOOGLE_SIGN_IN = 9101;
+    private FirebaseAuth firebaseAuth;
+    private FirebaseFirestore firestore;
+    private GoogleSignInClient googleSignInClient;
     private static final int REQUEST_NOTIFICATIONS = 8102;
     private static final String CHANNEL_ID = "mill_hisab_due_reminders";
     private String pendingTitle;
     private String pendingMessage;
 
     private class AppBridge {
+        @JavascriptInterface
+        public void startGoogleSignIn() {
+            runOnUiThread(() -> {
+                if (googleSignInClient == null) {
+                    if (webView != null) webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(false,'Google Login প্রস্তুত নয়')", null);
+                    return;
+                }
+                startActivityForResult(googleSignInClient.getSignInIntent(), RC_GOOGLE_SIGN_IN);
+            });
+        }
+
+        @JavascriptInterface
+        public void checkCloudAuth() {
+            runOnUiThread(() -> {
+                if (firebaseAuth != null && firebaseAuth.getCurrentUser() != null) {
+                    String email = JSONObject.quote(firebaseAuth.getCurrentUser().getEmail() == null ? "" : firebaseAuth.getCurrentUser().getEmail());
+                    webView.evaluateJavascript("window.onCloudAuthState && window.onCloudAuthState(true," + email + ")", null);
+                } else if (webView != null) webView.evaluateJavascript("window.onCloudAuthState && window.onCloudAuthState(false,'')", null);
+            });
+        }
+
+        @JavascriptInterface
+        public void signOutCloud() {
+            runOnUiThread(() -> {
+                if (firebaseAuth != null) firebaseAuth.signOut();
+                if (googleSignInClient != null) googleSignInClient.signOut();
+                if (webView != null) webView.evaluateJavascript("window.onCloudAuthState && window.onCloudAuthState(false,'')", null);
+            });
+        }
+
+        @JavascriptInterface
+        public void uploadCloudData(String json) {
+            if (firebaseAuth == null || firebaseAuth.getCurrentUser() == null || firestore == null || json == null || json.length() > 700000) {
+                if (webView != null) runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false,'লগইন নেই অথবা ডেটা ৭০০KB-এর বেশি')", null));
+                return;
+            }
+            String uid = firebaseAuth.getCurrentUser().getUid();
+            try {
+                Map<String, Object> payload = new HashMap<>();
+                Map<String, Object> data = new Gson().fromJson(json, Map.class);
+                payload.put("data", data);
+                payload.put("updatedAt", System.currentTimeMillis());
+                firestore.collection("users").document(uid).collection("appData").document("main")
+                    .set(payload, SetOptions.merge())
+                    .addOnSuccessListener(v -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(true,'ক্লাউডে সেভ হয়েছে')", null)))
+                    .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(e.getMessage()) + ")", null)));
+            } catch (Exception e) {
+                if (webView != null) runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(e.getMessage()) + ")", null));
+            }
+        }
+
+        @JavascriptInterface
+        public void downloadCloudData() {
+            if (firebaseAuth == null || firebaseAuth.getCurrentUser() == null || firestore == null) return;
+            String uid = firebaseAuth.getCurrentUser().getUid();
+            firestore.collection("users").document(uid).collection("appData").document("main").get()
+                .addOnSuccessListener(doc -> {
+                    String json = "null";
+                    if (doc.exists() && doc.get("data") instanceof java.util.Map) {
+                        json = JSONObject.quote(new Gson().toJson(doc.get("data")));
+                    }
+                    final String result = json;
+                    runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(" + result + ")", null));
+                })
+                .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(null)", null)));
+        }
+
         @JavascriptInterface
         public void shareText(String title, String text) {
             runOnUiThread(() -> {
@@ -83,6 +174,54 @@ public class MainActivity extends FragmentActivity {
         @JavascriptInterface
         public void cancelDailyReminder() {
             runOnUiThread(() -> cancelReminder());
+        }
+
+        @JavascriptInterface
+        public synchronized void saveAutoBackup(String json) {
+            if (json == null || json.length() == 0 || json.length() > 10 * 1024 * 1024) return;
+            File dir = new File(getFilesDir(), "auto-backups");
+            if (!dir.exists() && !dir.mkdirs()) return;
+            String day = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+            File target = new File(dir, "backup-" + day + ".json");
+            File temp = new File(dir, target.getName() + ".tmp");
+            try {
+                FileOutputStream out = new FileOutputStream(temp);
+                out.write(json.getBytes("UTF-8")); out.flush(); out.close();
+                if (target.exists()) target.delete();
+                if (!temp.renameTo(target)) {
+                    FileOutputStream fallback = new FileOutputStream(target);
+                    fallback.write(json.getBytes("UTF-8")); fallback.flush(); fallback.close(); temp.delete();
+                }
+                File[] backups = dir.listFiles((folder, name) -> name.startsWith("backup-") && name.endsWith(".json"));
+                if (backups != null) {
+                    Arrays.sort(backups, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+                    for (int i = 30; i < backups.length; i++) backups[i].delete();
+                }
+            } catch (Exception ignored) { temp.delete(); }
+        }
+
+        @JavascriptInterface
+        public String getLatestAutoBackup() {
+            File dir = new File(getFilesDir(), "auto-backups");
+            File[] backups = dir.listFiles((folder, name) -> name.startsWith("backup-") && name.endsWith(".json"));
+            if (backups == null || backups.length == 0) return "";
+            Arrays.sort(backups, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+            try {
+                FileInputStream in = new FileInputStream(backups[0]);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[8192]; int count;
+                while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
+                in.close(); return out.toString("UTF-8");
+            } catch (Exception ignored) { return ""; }
+        }
+
+        @JavascriptInterface
+        public String getAutoBackupInfo() {
+            File dir = new File(getFilesDir(), "auto-backups");
+            File[] backups = dir.listFiles((folder, name) -> name.startsWith("backup-") && name.endsWith(".json"));
+            if (backups == null || backups.length == 0) return "";
+            Arrays.sort(backups, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+            return new SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(new Date(backups[0].lastModified()));
         }
 
         @JavascriptInterface
@@ -235,6 +374,13 @@ public class MainActivity extends FragmentActivity {
             getWindow().setNavigationBarColor(android.graphics.Color.rgb(0, 105, 55));
             getWindow().getDecorView().setSystemUiVisibility(0);
         }
+        firebaseAuth = FirebaseAuth.getInstance();
+        firestore = FirebaseFirestore.getInstance();
+        GoogleSignInOptions signInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
+        googleSignInClient = GoogleSignIn.getClient(this, signInOptions);
         webView = new WebView(this);
         webView.setBackgroundColor(0xFFFFFFFF);
         WebSettings settings = webView.getSettings();
@@ -255,6 +401,28 @@ public class MainActivity extends FragmentActivity {
         setContentView(webView);
         restoreReminderSchedule();
         webView.loadUrl("file:///android_asset/index.html");
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RC_GOOGLE_SIGN_IN) {
+            try {
+                com.google.android.gms.auth.api.signin.GoogleSignInAccount account =
+                        GoogleSignIn.getSignedInAccountFromIntent(data).getResult(ApiException.class);
+                if (account != null && account.getIdToken() != null) {
+                    firebaseAuth.signInWithCredential(GoogleAuthProvider.getCredential(account.getIdToken(), null))
+                        .addOnSuccessListener(auth -> {
+                            String email = auth.getUser() == null ? "" : auth.getUser().getEmail();
+                            String safeEmail = JSONObject.quote(email == null ? "" : email);
+                            runOnUiThread(() -> webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(true," + safeEmail + ")", null));
+                        })
+                        .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(false," + JSONObject.quote(e.getMessage()) + ")", null)));
+                } else if (webView != null) webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(false,'Google token পাওয়া যায়নি')", null);
+            } catch (Exception e) {
+                if (webView != null) webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(false," + JSONObject.quote(e.getMessage()) + ")", null);
+            }
+        }
     }
 
     @Override
