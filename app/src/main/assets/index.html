@@ -558,6 +558,8 @@ document.getElementById('expenseMonth').onchange=renderExpenses;document.getElem
 render();applyTheme();applySavedFontSize();pinStatus();{let l=document.createElement('div');l.id='pinLock';l.className='pin-lock'+(localStorage.getItem(PIN_KEY)?'':' hidden');l.innerHTML='<div class="pin-card"><h2>🔒 মিল হিসাব লক করা</h2><p>PIN লিখুন</p><input id="unlockPin" type="password" inputmode="numeric" maxlength="8"><button onclick="unlockApp()">আনলক</button></div>';document.body.appendChild(l)}
 
 let cloudSignedIn=false, cloudEmail='', cloudPendingData=null;
+function cloudNeedsApk(){cloudNeedsApk()}
+function cloudNoApk(){cloudNoApk()}
 function cloudStatus(msg){let el=document.getElementById('cloudStatus');if(el)el.textContent=msg}
 function openCloudSync(){
  let box=document.getElementById('cloudSyncPanel');
