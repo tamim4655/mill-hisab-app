@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "1012353744980-tb5qlem76rs38pbbojlv3lu1qesmn4hd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tamim.millhisab",
+            "certificate_hash": "b08a97a9837765acf123014342030a53687f7746"
+          }
+        },
+        {
           "client_id": "1012353744980-f907gcr4416bejhndi3dj5bh908go065.apps.googleusercontent.com",
           "client_type": 3
         }
