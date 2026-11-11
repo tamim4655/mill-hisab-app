@@ -30,7 +30,22 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Create stable debug signing key\n        shell: bash\n        run: |\n          mkdir -p "$HOME/.android"\n          if [ ! -f "$HOME/.android/debug.keystore" ]; then\n            keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"\n          fi\n\n      - name: Install Android SDK packages
+      - name: Restore stable debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: mill-hisab-debug-keystore-v1
+
+      - name: Create stable debug signing key
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          chmod 600 "$HOME/.android/debug.keystore"
+
+      - name: Install Android SDK packages
         shell: bash
         run: |
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
