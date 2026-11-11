@@ -3,7 +3,9 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "fix/**" ]
+    branches: [ "main", "fix/**", "feature/**" ]
+  pull_request:
+    branches: [ "main" ]
 
 concurrency:
   group: android-apk-${{ github.ref }}
@@ -30,6 +32,21 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Restore stable debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.config/.android/debug.keystore
+          key: mill-hisab-debug-keystore-v1
+
+      - name: Create stable debug signing key
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.config/.android"
+          if [ ! -f "$HOME/.config/.android/debug.keystore" ]; then
+            keytool -genkeypair -v -keystore "$HOME/.config/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          chmod 600 "$HOME/.config/.android/debug.keystore"
+
       - name: Install Android SDK packages
         shell: bash
         run: |
@@ -49,6 +66,9 @@ jobs:
 
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
+
+      - name: Print Android signing fingerprints
+        run: gradle --no-daemon signingReport
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
