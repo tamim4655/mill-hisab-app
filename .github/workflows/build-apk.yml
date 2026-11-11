@@ -44,14 +44,14 @@ jobs:
           yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Print Android signing fingerprints
-        run: gradle --no-daemon signingReport
-
       - name: Check JavaScript syntax
         run: node --check app/src/main/assets/features.js
 
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
+
+      - name: Print Android signing fingerprints
+        run: gradle --no-daemon signingReport
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
