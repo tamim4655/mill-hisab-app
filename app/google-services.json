@@ -1,0 +1,20 @@
+{
+  "project_info": {
+    "project_number": "1012353744980",
+    "project_id": "mill-hisab-manager",
+    "storage_bucket": "mill-hisab-manager.firebasestorage.app"
+  },
+  "client": [{
+    "client_info": {
+      "mobilesdk_app_id": "1:1012353744980:android:043d83fe8048dfd0e4edc1",
+      "android_client_info": {"package_name": "com.tamim.millhisab"}
+    },
+    "oauth_client": [
+      {"client_id":"1012353744980-4cqn2d31vj0arigsg9u1ir67q4v22iar.apps.googleusercontent.com","client_type":1,"android_info":{"package_name":"com.tamim.millhisab","certificate_hash":"2a9e4d193990ec0deb592f78b0c27030cd9200d8"}},
+      {"client_id":"1012353744980-f907gcr4416bejhndi3dj5bh908go065.apps.googleusercontent.com","client_type":3}
+    ],
+    "api_key":[{"current_key":"AIzaSyAq0YIFELpP3q5bwhXa8VrTb7D03RuGer8"}],
+    "services":{"appinvite_service":{"other_platform_oauth_client":[{"client_id":"1012353744980-f907gcr4416bejhndi3dj5bh908go065.apps.googleusercontent.com","client_type":3}]}}
+  }],
+  "configuration_version":"1"
+}
