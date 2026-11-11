@@ -558,13 +558,13 @@ document.getElementById('expenseMonth').onchange=renderExpenses;document.getElem
 render();applyTheme();applySavedFontSize();pinStatus();{let l=document.createElement('div');l.id='pinLock';l.className='pin-lock'+(localStorage.getItem(PIN_KEY)?'':' hidden');l.innerHTML='<div class="pin-card"><h2>🔒 মিল হিসাব লক করা</h2><p>PIN লিখুন</p><input id="unlockPin" type="password" inputmode="numeric" maxlength="8"><button onclick="unlockApp()">আনলক</button></div>';document.body.appendChild(l)}
 
 let cloudSignedIn=false, cloudEmail='', cloudPendingData=null;
-function cloudNeedsApk(){cloudNeedsApk()}
-function cloudNoApk(){cloudNoApk()}
+function cloudNeedsApk(){cloudStatus("এই সুবিধার জন্য Android APK প্রয়োজন")}
+function cloudNoApk(){cloudStatus("Android APK প্রয়োজন")}
 function cloudStatus(msg){let el=document.getElementById('cloudStatus');if(el)el.textContent=msg}
 function openCloudSync(){
  let box=document.getElementById('cloudSyncPanel');
  if(!box){box=document.createElement('div');box.id='cloudSyncPanel';box.style.cssText='position:fixed;z-index:99999;left:12px;right:12px;bottom:82px;background:var(--card,#fff);color:var(--text,#222);border:1px solid #9995;border-radius:16px;padding:16px;box-shadow:0 8px 30px #0004;font:inherit;max-width:460px;margin:auto';
- box.innerHTML='<b>☁️ ক্লাউড সিঙ্ক</b><button onclick="document.getElementById(\'cloudSyncPanel\').remove()" style="float:right">✕</button><p id="cloudStatus">Google Login করে আপনার হিসাব সিঙ্ক করুন</p><button id="cloudLoginBtn" onclick="(window.AndroidBridge&&AndroidBridge.startGoogleSignIn?AndroidBridge.startGoogleSignIn():cloudStatus('এই সুবিধার জন্য Android APK প্রয়োজন'))">Google দিয়ে লগইন</button> <button id="cloudSyncBtn" onclick="cloudManualSync()">এখন সিঙ্ক</button> <button id="cloudLogoutBtn" onclick="(window.AndroidBridge&&AndroidBridge.signOutCloud?AndroidBridge.signOutCloud():cloudStatus('Android APK প্রয়োজন'))">লগআউট</button>';
+ box.innerHTML='<b>☁️ ক্লাউড সিঙ্ক</b><button onclick="document.getElementById(\'cloudSyncPanel\').remove()" style="float:right">✕</button><p id="cloudStatus">Google Login করে আপনার হিসাব সিঙ্ক করুন</p><button id="cloudLoginBtn" onclick="(window.AndroidBridge&&AndroidBridge.startGoogleSignIn?AndroidBridge.startGoogleSignIn():cloudNeedsApk())">Google দিয়ে লগইন</button> <button id="cloudSyncBtn" onclick="cloudManualSync()">এখন সিঙ্ক</button> <button id="cloudLogoutBtn" onclick="(window.AndroidBridge&&AndroidBridge.signOutCloud?AndroidBridge.signOutCloud():cloudNoApk())">লগআউট</button>';
  document.body.appendChild(box)}
  if(window.AndroidBridge&&AndroidBridge.checkCloudAuth)AndroidBridge.checkCloudAuth();
 }
