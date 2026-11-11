@@ -53,7 +53,7 @@ jobs:
           python3 - <<'PY'
           import re, pathlib, subprocess, tempfile
           html = pathlib.Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
-          scripts = re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\\S]*?)</script>', html, flags=re.I)
+          scripts = re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>', html, flags=re.I)
           if not scripts:
               raise SystemExit('No inline scripts found')
           for i, script in enumerate(scripts):
