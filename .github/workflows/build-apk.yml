@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "fix/**" ]
+    branches: [ "main", "fix/**", "feature/**" ]
 
 concurrency:
   group: android-apk-${{ github.ref }}
@@ -30,7 +30,7 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Install Android SDK packages
+      - name: Create stable debug signing key\n        shell: bash\n        run: |\n          mkdir -p "$HOME/.android"\n          if [ ! -f "$HOME/.android/debug.keystore" ]; then\n            keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"\n          fi\n\n      - name: Install Android SDK packages
         shell: bash
         run: |
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
