@@ -32,6 +32,9 @@ import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import org.json.JSONObject;
+import com.google.gson.Gson;
+import java.util.HashMap;
+import java.util.Map;
 import androidx.biometric.BiometricManager;
 import androidx.fragment.app.FragmentActivity;
 import androidx.core.content.ContextCompat;
@@ -95,8 +98,9 @@ public class MainActivity extends FragmentActivity {
             }
             String uid = firebaseAuth.getCurrentUser().getUid();
             try {
-                JSONObject payload = new JSONObject();
-                payload.put("data", new JSONObject(json));
+                Map<String, Object> payload = new HashMap<>();
+                Map<String, Object> data = new Gson().fromJson(json, Map.class);
+                payload.put("data", data);
                 payload.put("updatedAt", System.currentTimeMillis());
                 firestore.collection("users").document(uid).collection("appData").document("main")
                     .set(payload, SetOptions.merge())
@@ -113,9 +117,9 @@ public class MainActivity extends FragmentActivity {
             String uid = firebaseAuth.getCurrentUser().getUid();
             firestore.collection("users").document(uid).collection("appData").document("main").get()
                 .addOnSuccessListener(doc -> {
-                    String json = doc.exists() && doc.get("data") != null ? JSONObject.quote(doc.get("data").toString()) : "null";
+                    String json = "null";
                     if (doc.exists() && doc.get("data") instanceof java.util.Map) {
-                        try { json = JSONObject.quote(new JSONObject((java.util.Map) doc.get("data")).toString()); } catch (Exception ignored) {}
+                        json = JSONObject.quote(new Gson().toJson(doc.get("data")));
                     }
                     final String result = json;
                     runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(" + result + ")", null));
