@@ -119,7 +119,7 @@ public class MainActivity extends FragmentActivity {
                 .addOnSuccessListener(doc -> {
                     String json = "null";
                     if (doc.exists() && doc.get("data") instanceof java.util.Map) {
-                        json = JSONObject.quote(new Gson().toJson(doc.get("data")));
+                        json = new Gson().toJson(doc.get("data"));
                     }
                     final String result = json;
                     runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(" + result + ")", null));
