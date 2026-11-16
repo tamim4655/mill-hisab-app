@@ -146,7 +146,13 @@ public class MainActivity extends FragmentActivity {
                     final String result = new Gson().toJson(response);
                     runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(" + result + ")", null));
                 })
-                .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(null)", null)));
+                .addOnFailureListener(e -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("uid", uid);
+                    response.put("error", true);
+                    final String result = new Gson().toJson(response);
+                    runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(" + result + ")", null));
+                });
         }
 
         @JavascriptInterface
