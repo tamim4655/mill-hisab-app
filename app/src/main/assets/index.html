@@ -606,11 +606,12 @@ function onCloudAuthResult(ok,msg){
  cloudStatus('লগইন হয়েছে: '+cloudEmail+' — ডেটা পরীক্ষা হচ্ছে');AndroidBridge.downloadCloudData()
 }
 function onCloudDataResult(payload){
+ if(cloudReady){onCloudRemoteUpdate(payload);return}
  const remote=payload&&payload.data?payload.data:null;
  if(remote&&remote.customers){
   cloudPendingData=payload;
   const local=JSON.parse(localStorage.getItem(KEY)||'null');
-  const localExists=!!(local&&Array.isArray(local.customers)&&local.customers.length);
+  const localExists=!!(local&&Array.isArray(local.customers)&&local.customers.length&&(Object.keys(local.meals||{}).length>0||(local.payments||[]).length>0||(local.expenses||[]).length>0||JSON.stringify(local.customers)!==JSON.stringify(SEED)));
   if(localExists){
    if(confirm('এই Google অ্যাকাউন্টে ক্লাউডের হিসাব পাওয়া গেছে।\\nOK = আগে ফোনের Backup রেখে ক্লাউডের হিসাব আনুন\\nCancel = এই ফোনের হিসাব ক্লাউডে পাঠান')){
     cloudApplyRemote(payload);
