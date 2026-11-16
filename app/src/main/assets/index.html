@@ -523,6 +523,57 @@ input:focus,select:focus{border-color:#20a365;box-shadow:0 0 0 4px rgba(32,163,1
  #settings .setting-card-body .color-swatches{gap:15px}
 }
 @media(min-width:651px){#settings>.box>.setting-card:nth-child(1){grid-column:span 2}#settings>.box>.setting-card:nth-child(2){grid-column:span 2}}
+
+/* Clean Professional + Minimal Premium settings direction */
+#settings{--sp-ink:#172b24;--sp-muted:#75847b;--sp-line:#e8eee9;--sp-accent:#16734d}
+#settings>h2{font-size:22px;font-weight:850;letter-spacing:-.55px;margin:5px 2px 18px;color:var(--sp-ink)}
+#settings>h2:before{width:4px;height:25px;border-radius:6px;background:#16734d}
+#settings>.box{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;border:0;background:transparent;box-shadow:none}
+#settings .setting-card{position:relative;min-width:0;padding:17px 17px 16px 16px;border:1px solid var(--sp-line);border-radius:16px;background:#fff;box-shadow:0 2px 9px rgba(24,52,37,.035);transition:border-color .18s ease,box-shadow .18s ease}
+#settings .setting-card:before{content:"";position:absolute;left:0;top:15px;bottom:15px;width:3px;border-radius:0 4px 4px 0;background:#d8eade}
+#settings .setting-card:active{transform:none;border-color:#b8d8c4;box-shadow:0 4px 14px rgba(24,80,49,.07)}
+#settings .setting-card-head{gap:11px;margin-bottom:12px}
+#settings .setting-icon{width:32px;height:32px;border-radius:10px;background:#f0f6f1;color:#24734c;font-size:17px;box-shadow:none}
+#settings .setting-card-title{font-size:14px;font-weight:800;letter-spacing:-.15px;color:#21392c}
+#settings .setting-card-body>.hint{font-size:12px;line-height:1.6;color:#849188;margin:0 0 12px}
+#settings .setting-card-body{font-size:13px;color:#43574a}
+#settings .setting-card-body .row{gap:8px;margin:9px 0 10px}
+#settings .setting-card-body button{min-height:39px;padding:8px 12px;border-radius:10px;font-size:12.5px;font-weight:750;box-shadow:none}
+#settings .setting-card-body input:not([type=checkbox]):not([type=range]),#settings .setting-card-body select{min-height:42px;border:1px solid #e1e9e3;border-radius:10px;background:#fbfdfb;padding:9px 11px;font-size:13px;box-shadow:none}
+#settings .setting-card-body input:focus,#settings .setting-card-body select:focus{outline:3px solid rgba(22,115,77,.11);border-color:#8ab99b}
+#settings .setting-card-body input[type=range]{accent-color:#16734d}
+#settings .setting-card-body input[type=checkbox]{accent-color:#16734d}
+#settings .setting-card-body label{font-size:12.5px;color:#53665a}
+#settings .setting-card-body .color-swatch{width:31px;height:31px;border:2px solid #fff;box-shadow:0 0 0 1px #dce6de}
+#settings .settings-cloud{border:1px solid #dfeae2;border-radius:16px;background:#f8fbf8;box-shadow:none;padding:16px}
+#settings .settings-cloud:after{font-size:76px;right:12px;top:-12px;color:rgba(22,115,77,.045)}
+#settings .settings-cloud-icon{width:40px;height:40px;border-radius:12px;background:#e5f1e8;color:#16734d;box-shadow:none}
+#settings .settings-cloud-title{font-size:15px;color:#21392c}
+#settings .settings-cloud-subtitle{font-size:11.5px;color:#7b8a80}
+#settings #cloudStatus{border:1px solid #e5eee7;background:#fff;border-radius:10px;color:#63756a}
+#settings .settings-cloud-actions button{min-height:39px}
+.dark #settings>h2{color:#e5eee8}
+.dark #settings .setting-card{background:#17251d;border-color:#2c4033;box-shadow:none}
+.dark #settings .setting-card:before{background:#38694c}
+.dark #settings .setting-icon{background:#24392b;color:#a8d6b5}
+.dark #settings .setting-card-title{color:#e2eee5}
+.dark #settings .setting-card-body, .dark #settings .setting-card-body label{color:#c0d0c5}
+.dark #settings .setting-card-body>.hint{color:#94a99a}
+.dark #settings .setting-card-body input:not([type=checkbox]):not([type=range]),.dark #settings .setting-card-body select{background:#1b2d22;border-color:#3a5141;color:#e5eee8}
+.dark #settings .settings-cloud{background:#1a2b20;border-color:#304b38}
+.dark #settings .settings-cloud-icon{background:#284332;color:#b4e0c0}
+.dark #settings .settings-cloud-title{color:#e2eee5}
+.dark #settings #cloudStatus{background:#203428;border-color:#36513e;color:#c4d6c9}
+@media(max-width:650px){
+ #settings>.box{grid-template-columns:1fr;gap:10px}
+ #settings .setting-card{padding:15px 15px 14px 16px;border-radius:14px}
+ #settings .setting-card-head{margin-bottom:9px}
+ #settings .setting-card-body .row{gap:7px}
+ #settings .setting-card-body button{min-height:38px;padding:8px 11px}
+ #settings .setting-card-body #pinInput{flex:1 1 100%}
+ #settings .settings-cloud{padding:15px;border-radius:15px}
+}
+@media(min-width:651px){#settings>.box>.setting-card:nth-child(1){grid-column:span 2}}
 </style></head><body><header class="app-header"><button class="menu-trigger" onclick="toggleDrawer()" aria-label="মেনু">☰</button><div class="brand"><div class="brand-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 29 32 7l26 22v27H6Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M23 56V37h18v19M18 29h28" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M27 19v14m-4-14v8m8-8v8" stroke="currentColor" stroke-width="2.5"/><path d="M45 18v15" stroke="#facc15" stroke-width="4" stroke-linecap="round"/></svg></div><div><h1>মিল হিসাব</h1><p>সঠিক হিসাব, শান্তির ঘর</p></div></div><button class="theme-trigger" onclick="toggleDark()" aria-label="ডার্ক মোড">☾</button></header><main class="wrap">
 <section id="home" class="panel active">
 <div class="dashboard-welcome"><div class="welcome-copy"><span class="eyebrow">স্বাগতম!</span><h2>আমাদের মিল হিসাব অ্যাপে</h2><p>সঠিক হিসাব রাখুন, ঝামেলামুক্ত থাকুন।</p><div class="welcome-actions"><button onclick="go('meals')">আজকের মিল লিখুন</button></div></div><div class="welcome-art"><div class="plate-art">🍛</div><span class="art-leaf leaf-one">🌿</span></div></div><div class="dashboard-toolbar"><div><span class="section-kicker">সারসংক্ষেপ</span><h2>মাসের হিসাব</h2></div><input type="month" id="homeMonth"></div>
