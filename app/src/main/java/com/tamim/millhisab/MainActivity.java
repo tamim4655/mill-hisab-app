@@ -123,7 +123,7 @@ public class MainActivity extends FragmentActivity {
                     .addOnSuccessListener(v -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(true,'ক্লাউডে সেভ হয়েছে'," + JSONObject.quote(uid) + ")", null)))
                     .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(e.getMessage()) + "," + JSONObject.quote(uid) + ")", null)));
             } catch (Exception e) {
-                if (webView != null) runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(e.getMessage()) + ")", null));
+                if (webView != null) runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(e.getMessage()) + "," + JSONObject.quote(uid) + ")", null));
             }
         }
 
