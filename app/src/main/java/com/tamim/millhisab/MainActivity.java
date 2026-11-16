@@ -31,6 +31,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.ListenerRegistration;
 import org.json.JSONObject;
 import com.google.gson.Gson;
 import java.util.HashMap;
@@ -47,6 +48,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
+import java.util.UUID;
 
 public class MainActivity extends FragmentActivity {
     private WebView webView;
@@ -54,6 +56,8 @@ public class MainActivity extends FragmentActivity {
     private FirebaseAuth firebaseAuth;
     private FirebaseFirestore firestore;
     private GoogleSignInClient googleSignInClient;
+    private ListenerRegistration cloudListener;
+    private String cloudDeviceId;
     private static final int REQUEST_NOTIFICATIONS = 8102;
     private static final String CHANNEL_ID = "mill_hisab_due_reminders";
     private String pendingTitle;
@@ -102,6 +106,7 @@ public class MainActivity extends FragmentActivity {
                 Map<String, Object> data = new Gson().fromJson(json, Map.class);
                 payload.put("data", data);
                 payload.put("updatedAt", System.currentTimeMillis());
+                payload.put("deviceId", cloudDeviceId == null ? "unknown" : cloudDeviceId);
                 firestore.collection("users").document(uid).collection("appData").document("main")
                     .set(payload, SetOptions.merge())
                     .addOnSuccessListener(v -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(true,'ক্লাউডে সেভ হয়েছে')", null)))
@@ -118,13 +123,48 @@ public class MainActivity extends FragmentActivity {
             firestore.collection("users").document(uid).collection("appData").document("main").get()
                 .addOnSuccessListener(doc -> {
                     String json = "null";
+                    Map<String, Object> response = new HashMap<>();
                     if (doc.exists() && doc.get("data") instanceof java.util.Map) {
-                        json = new Gson().toJson(doc.get("data"));
+                        response.put("data", doc.get("data"));
+                        response.put("updatedAt", doc.getLong("updatedAt") == null ? 0L : doc.getLong("updatedAt"));
+                        response.put("deviceId", doc.getString("deviceId") == null ? "" : doc.getString("deviceId"));
+                        json = new Gson().toJson(response);
                     }
                     final String result = json;
                     runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(" + result + ")", null));
                 })
                 .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(null)", null)));
+        }
+
+        @JavascriptInterface
+        public String getCloudDeviceId() {
+            return cloudDeviceId == null ? "unknown" : cloudDeviceId;
+        }
+
+        @JavascriptInterface
+        public void startCloudListener() {
+            if (firebaseAuth == null || firebaseAuth.getCurrentUser() == null || firestore == null) return;
+            if (cloudListener != null) cloudListener.remove();
+            String uid = firebaseAuth.getCurrentUser().getUid();
+            cloudListener = firestore.collection("users").document(uid).collection("appData").document("main")
+                .addSnapshotListener((doc, error) -> {
+                    if (error != null || doc == null || !doc.exists() || !(doc.get("data") instanceof java.util.Map)) return;
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("data", doc.get("data"));
+                    response.put("updatedAt", doc.getLong("updatedAt") == null ? 0L : doc.getLong("updatedAt"));
+                    response.put("deviceId", doc.getString("deviceId") == null ? "" : doc.getString("deviceId"));
+                    String payloadJson = new Gson().toJson(response);
+                    if (webView != null) runOnUiThread(() ->
+                        webView.evaluateJavascript("window.onCloudRemoteUpdate && window.onCloudRemoteUpdate(" + payloadJson + ")", null));
+                });
+        }
+
+        @JavascriptInterface
+        public void stopCloudListener() {
+            if (cloudListener != null) {
+                cloudListener.remove();
+                cloudListener = null;
+            }
         }
 
         @JavascriptInterface
@@ -375,6 +415,12 @@ public class MainActivity extends FragmentActivity {
             getWindow().getDecorView().setSystemUiVisibility(0);
         }
         firebaseAuth = FirebaseAuth.getInstance();
+        android.content.SharedPreferences cloudPrefs = getSharedPreferences("mill_hisab_cloud", MODE_PRIVATE);
+        cloudDeviceId = cloudPrefs.getString("device_id", null);
+        if (cloudDeviceId == null) {
+            cloudDeviceId = UUID.randomUUID().toString();
+            cloudPrefs.edit().putString("device_id", cloudDeviceId).apply();
+        }
         firestore = FirebaseFirestore.getInstance();
         GoogleSignInOptions signInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.default_web_client_id))
