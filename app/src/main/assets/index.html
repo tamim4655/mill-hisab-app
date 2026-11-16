@@ -839,7 +839,11 @@ function openCloudSync(){
  if(window.AndroidBridge&&AndroidBridge.checkCloudAuth)AndroidBridge.checkCloudAuth();
 }
 const CLOUD_EDIT_KEY='mill_hisab_cloud_local_edit_v1', CLOUD_ACCOUNT_KEY='mill_hisab_cloud_account_v1';
-let cloudReady=false, cloudDeviceId='';
+let cloudReady=false, cloudDeviceId='',cloudInitialFetchInFlight=false;
+function cloudRequestInitialData(){
+ if(!cloudSignedIn||cloudInitialFetchInFlight||!window.AndroidBridge||!AndroidBridge.downloadCloudData)return;
+ cloudInitialFetchInFlight=true;AndroidBridge.downloadCloudData();
+}
 function cloudApplyRemote(payload){
  const remote=payload&&payload.data?payload.data:null;
  if(!remote||!remote.customers)return false;
@@ -869,15 +873,17 @@ function cloudManualSync(){
 }
 function onCloudAuthState(ok,email){
  cloudSignedIn=!!ok;cloudEmail=email||'';
- if(ok){cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';cloudStatus('লগইন: '+cloudEmail+' — ক্লাউড পরীক্ষা হচ্ছে');if(window.AndroidBridge&&AndroidBridge.downloadCloudData)AndroidBridge.downloadCloudData()}
- else{cloudReady=false;cloudStatus('Google Login করা নেই')}
+ if(ok){cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';cloudStatus('লগইন: '+cloudEmail+' — ক্লাউড পরীক্ষা হচ্ছে');cloudRequestInitialData()}
+ else{cloudReady=false;cloudInitialFetchInFlight=false;cloudStatus('Google Login করা নেই')}
 }
 function onCloudAuthResult(ok,msg){
  if(!ok){cloudStatus('লগইন হয়নি: '+msg);return}
  cloudSignedIn=true;cloudEmail=msg||'';cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';
- cloudStatus('লগইন হয়েছে: '+cloudEmail+' — ডেটা পরীক্ষা হচ্ছে');AndroidBridge.downloadCloudData()
+ cloudStatus('লগইন হয়েছে: '+cloudEmail+' — ডেটা পরীক্ষা হচ্ছে');cloudRequestInitialData()
 }
 function onCloudDataResult(payload){
+ cloudInitialFetchInFlight=false;
+ if(payload===null){cloudReady=false;cloudStatus('ক্লাউড থেকে ডেটা আনা যায়নি; ইন্টারনেট এলে আবার চেষ্টা হবে');return}
  if(cloudReady){onCloudRemoteUpdate(payload);return}
  const remote=payload&&payload.data?payload.data:null;
  if(remote&&remote.customers){
@@ -935,7 +941,9 @@ function onCloudUploadResult(ok,msg){
  if(cloudUploadPending&&cloudSignedIn&&cloudReady)cloudUploadLocal(JSON.stringify(db));
 }
 function onCloudConnectivityRestored(){
- if(cloudSignedIn&&cloudReady&&cloudHasPendingLocalChanges())cloudUploadLocal(JSON.stringify(db));
+ if(!cloudSignedIn)return;
+ if(!cloudReady){cloudRequestInitialData();return}
+ if(cloudHasPendingLocalChanges())cloudUploadLocal(JSON.stringify(db));
 }
 
 if(window.AndroidBridge&&AndroidBridge.checkCloudAuth)AndroidBridge.checkCloudAuth();
