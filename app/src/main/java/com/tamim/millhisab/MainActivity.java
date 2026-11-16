@@ -12,6 +12,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 import java.util.Calendar;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
@@ -58,6 +62,8 @@ public class MainActivity extends FragmentActivity {
     private GoogleSignInClient googleSignInClient;
     private ListenerRegistration cloudListener;
     private String cloudDeviceId;
+    private ConnectivityManager cloudConnectivityManager;
+    private ConnectivityManager.NetworkCallback cloudNetworkCallback;
     private static final int REQUEST_NOTIFICATIONS = 8102;
     private static final String CHANNEL_ID = "mill_hisab_due_reminders";
     private String pendingTitle;
@@ -126,15 +132,15 @@ public class MainActivity extends FragmentActivity {
             String uid = firebaseAuth.getCurrentUser().getUid();
             firestore.collection("users").document(uid).collection("appData").document("main").get()
                 .addOnSuccessListener(doc -> {
-                    String json = "null";
                     Map<String, Object> response = new HashMap<>();
                     if (doc.exists() && doc.get("data") instanceof java.util.Map) {
                         response.put("data", doc.get("data"));
                         response.put("updatedAt", doc.getLong("updatedAt") == null ? 0L : doc.getLong("updatedAt"));
                         response.put("deviceId", doc.getString("deviceId") == null ? "" : doc.getString("deviceId"));
-                        json = new Gson().toJson(response);
+                    } else {
+                        response.put("exists", false);
                     }
-                    final String result = json;
+                    final String result = new Gson().toJson(response);
                     runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(" + result + ")", null));
                 })
                 .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(null)", null)));
@@ -473,6 +479,41 @@ public class MainActivity extends FragmentActivity {
                 if (webView != null) webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(false," + JSONObject.quote(e.getMessage()) + ")", null);
             }
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        try {
+            cloudConnectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cloudConnectivityManager != null && cloudNetworkCallback == null) {
+                NetworkRequest request = new NetworkRequest.Builder()
+                        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                        .build();
+                cloudNetworkCallback = new ConnectivityManager.NetworkCallback() {
+                    @Override
+                    public void onAvailable(Network network) {
+                        runOnUiThread(() -> {
+                            if (webView != null) webView.evaluateJavascript(
+                                    "window.onCloudConnectivityRestored && window.onCloudConnectivityRestored()", null);
+                        });
+                    }
+                };
+                cloudConnectivityManager.registerNetworkCallback(request, cloudNetworkCallback);
+            }
+        } catch (Exception ignored) {
+            cloudNetworkCallback = null;
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        if (cloudConnectivityManager != null && cloudNetworkCallback != null) {
+            try { cloudConnectivityManager.unregisterNetworkCallback(cloudNetworkCallback); }
+            catch (Exception ignored) { }
+            cloudNetworkCallback = null;
+        }
+        super.onStop();
     }
 
     @Override
