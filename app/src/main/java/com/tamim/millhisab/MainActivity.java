@@ -107,11 +107,15 @@ public class MainActivity extends FragmentActivity {
 
         @JavascriptInterface
         public void uploadCloudData(String json) {
-            if (firebaseAuth == null || firebaseAuth.getCurrentUser() == null || firestore == null || json == null || json.getBytes(StandardCharsets.UTF_8).length > 750 * 1024) {
-                if (webView != null) runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false,'লগইন নেই অথবা ডেটা ৭০০KB-এর বেশি','')", null));
+            String uid = firebaseAuth == null || firebaseAuth.getCurrentUser() == null
+                    ? "" : firebaseAuth.getCurrentUser().getUid();
+            if (uid.isEmpty() || firestore == null || json == null || json.getBytes(StandardCharsets.UTF_8).length > 750 * 1024) {
+                if (webView != null) {
+                    String message = uid.isEmpty() ? "Google Login নেই" : "ডেটা ৭০০KB-এর বেশি অথবা ক্লাউড প্রস্তুত নয়";
+                    runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(message) + "," + JSONObject.quote(uid) + ")", null));
+                }
                 return;
             }
-            String uid = firebaseAuth.getCurrentUser().getUid();
             try {
                 Map<String, Object> payload = new HashMap<>();
                 Map<String, Object> data = new Gson().fromJson(json, Map.class);
