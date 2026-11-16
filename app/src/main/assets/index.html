@@ -882,8 +882,9 @@ function onCloudAuthResult(ok,msg){
  cloudStatus('লগইন হয়েছে: '+cloudEmail+' — ডেটা পরীক্ষা হচ্ছে');cloudRequestInitialData()
 }
 function onCloudDataResult(payload){
- cloudInitialFetchInFlight=false;
  if(!cloudSignedIn||!cloudUid)return;
+ if(payload&&payload.uid&&payload.uid!==cloudUid)return;
+ cloudInitialFetchInFlight=false;
  if(payload===null){cloudReady=false;cloudStatus('ক্লাউড থেকে ডেটা আনা যায়নি; ইন্টারনেট এলে আবার চেষ্টা হবে');return}
  if(payload.uid&&payload.uid!==cloudUid)return;
  if(cloudReady){onCloudRemoteUpdate(payload);return}
@@ -934,7 +935,7 @@ function onCloudUploadResult(ok,msg,uid){
  if(ok){
   if((localStorage.getItem(CLOUD_EDIT_KEY)||'0')===completedRevision){
    localStorage.setItem(CLOUD_EDIT_KEY,'0');
-   localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudEmail);
+   localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudUid);
    cloudStatus('✓ '+msg+' — স্বয়ংক্রিয় সিঙ্ক চালু');
   }else{
    cloudStatus('নতুন পরিবর্তন পাওয়া গেছে; সেটিও সিঙ্ক হচ্ছে...');
