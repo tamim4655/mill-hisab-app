@@ -848,7 +848,8 @@ function cloudRequestInitialData(){
  cloudInitialFetchInFlight=true;AndroidBridge.downloadCloudData();
 }
 function cloudApplyRemote(payload){
- const remote=payload&&payload.data?payload.data:null;
+ if(!payload||payload.uid!==cloudUid)return false;
+ const remote=payload.data||null;
  if(!remote||!remote.customers)return false;
  if(window.AndroidBridge&&AndroidBridge.saveAutoBackup){try{AndroidBridge.saveAutoBackup(JSON.stringify(db))}catch(e){}}
  db=remote;localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(CLOUD_EDIT_KEY,'0');localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudUid);
@@ -918,7 +919,7 @@ function onCloudDataResult(payload){
  }
 }
 function onCloudRemoteUpdate(payload){
- if(!cloudSignedIn||!cloudUid||!cloudReady||!payload||!payload.data||(payload.uid&&payload.uid!==cloudUid)||payload.deviceId===cloudDeviceId)return;
+ if(!cloudSignedIn||!cloudUid||!cloudReady||!payload||payload.uid!==cloudUid||!payload.data||payload.deviceId===cloudDeviceId)return;
  if(cloudHasPendingLocalChanges()){
   if(confirm('এই ফোনে ক্লাউডে না-পাঠানো পরিবর্তন আছে।\\nOK = এই ফোনের হিসাব ক্লাউডে রাখুন\\nCancel = আগে ফোনের Backup রেখে অন্য ফোনের হিসাব আনুন')){
    cloudUploadLocal(JSON.stringify(db));
