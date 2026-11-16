@@ -839,7 +839,7 @@ function openCloudSync(){
  if(window.AndroidBridge&&AndroidBridge.checkCloudAuth)AndroidBridge.checkCloudAuth();
 }
 const CLOUD_EDIT_KEY='mill_hisab_cloud_local_edit_v1', CLOUD_ACCOUNT_KEY='mill_hisab_cloud_account_v1';
-let cloudReady=false, cloudDeviceId='',cloudInitialFetchInFlight=false;
+let cloudReady=false, cloudDeviceId='',cloudUid='',cloudInitialFetchInFlight=false;
 function cloudRequestInitialData(){
  if(!cloudSignedIn||cloudInitialFetchInFlight||!window.AndroidBridge||!AndroidBridge.downloadCloudData)return;
  cloudInitialFetchInFlight=true;AndroidBridge.downloadCloudData();
@@ -848,7 +848,7 @@ function cloudApplyRemote(payload){
  const remote=payload&&payload.data?payload.data:null;
  if(!remote||!remote.customers)return false;
  if(window.AndroidBridge&&AndroidBridge.saveAutoBackup){try{AndroidBridge.saveAutoBackup(JSON.stringify(db))}catch(e){}}
- db=remote;localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(CLOUD_EDIT_KEY,'0');localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudEmail);
+ db=remote;localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(CLOUD_EDIT_KEY,'0');localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudUid);
  if(typeof render==='function')render();
  cloudStatus('✓ অন্য ফোনের সর্বশেষ হিসাব এই ফোনে এসেছে');
  return true;
@@ -873,24 +873,26 @@ function cloudManualSync(){
 }
 function onCloudAuthState(ok,email){
  cloudSignedIn=!!ok;cloudEmail=email||'';
- if(ok){cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';cloudStatus('লগইন: '+cloudEmail+' — ক্লাউড পরীক্ষা হচ্ছে');cloudRequestInitialData()}
- else{cloudReady=false;cloudInitialFetchInFlight=false;cloudStatus('Google Login করা নেই')}
+ if(ok){cloudUid=window.AndroidBridge&&AndroidBridge.getCloudUserId?AndroidBridge.getCloudUserId():'';cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';cloudStatus('লগইন: '+cloudEmail+' — ক্লাউড পরীক্ষা হচ্ছে');cloudRequestInitialData()}
+ else{cloudUid='';cloudReady=false;cloudInitialFetchInFlight=false;cloudStatus('Google Login করা নেই')}
 }
 function onCloudAuthResult(ok,msg){
  if(!ok){cloudStatus('লগইন হয়নি: '+msg);return}
- cloudSignedIn=true;cloudEmail=msg||'';cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';
+ cloudSignedIn=true;cloudEmail=msg||'';cloudUid=window.AndroidBridge&&AndroidBridge.getCloudUserId?AndroidBridge.getCloudUserId():'';cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';
  cloudStatus('লগইন হয়েছে: '+cloudEmail+' — ডেটা পরীক্ষা হচ্ছে');cloudRequestInitialData()
 }
 function onCloudDataResult(payload){
  cloudInitialFetchInFlight=false;
+ if(!cloudSignedIn||!cloudUid)return;
  if(payload===null){cloudReady=false;cloudStatus('ক্লাউড থেকে ডেটা আনা যায়নি; ইন্টারনেট এলে আবার চেষ্টা হবে');return}
+ if(payload.uid&&payload.uid!==cloudUid)return;
  if(cloudReady){onCloudRemoteUpdate(payload);return}
  const remote=payload&&payload.data?payload.data:null;
  if(remote&&remote.customers){
   cloudPendingData=payload;
   const local=JSON.parse(localStorage.getItem(KEY)||'null');
   const localExists=!!(local&&Array.isArray(local.customers)&&local.customers.length&&(Object.keys(local.meals||{}).length>0||(local.payments||[]).length>0||(local.expenses||[]).length>0||JSON.stringify(local.customers)!==JSON.stringify(SEED)));
-  const sameAccount=localStorage.getItem(CLOUD_ACCOUNT_KEY)===cloudEmail;
+  const sameAccount=localStorage.getItem(CLOUD_ACCOUNT_KEY)===cloudUid;
   if(cloudHasPendingLocalChanges()){
    if(confirm('এই ফোনে ক্লাউডে না-পাঠানো নতুন হিসাব আছে।\\nOK = ফোনের হিসাব ক্লাউডে পাঠান\\nCancel = আগে ফোনের Backup রেখে ক্লাউডের হিসাব আনুন')){
     cloudUploadLocal(JSON.stringify(db));
@@ -913,7 +915,7 @@ function onCloudDataResult(payload){
  }
 }
 function onCloudRemoteUpdate(payload){
- if(!cloudReady||!payload||!payload.data||payload.deviceId===cloudDeviceId)return;
+ if(!cloudSignedIn||!cloudUid||!cloudReady||!payload||!payload.data||(payload.uid&&payload.uid!==cloudUid)||payload.deviceId===cloudDeviceId)return;
  if(cloudHasPendingLocalChanges()){
   if(confirm('এই ফোনে ক্লাউডে না-পাঠানো পরিবর্তন আছে।\\nOK = এই ফোনের হিসাব ক্লাউডে রাখুন\\nCancel = আগে ফোনের Backup রেখে অন্য ফোনের হিসাব আনুন')){
    cloudUploadLocal(JSON.stringify(db));
@@ -925,7 +927,8 @@ function onCloudLocalSave(json){
  if(!cloudSignedIn||!cloudReady){cloudStatus('ফোনে সেভ হয়েছে; ইন্টারনেট/লগইন হলে সিঙ্ক হবে');return}
  cloudUploadLocal(json);
 }
-function onCloudUploadResult(ok,msg){
+function onCloudUploadResult(ok,msg,uid){
+ if(uid&&cloudUid&&uid!==cloudUid)return;
  const completedRevision=cloudUploadRevision;
  cloudUploadInFlight=false;
  if(ok){
