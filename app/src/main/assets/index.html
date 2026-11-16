@@ -582,13 +582,13 @@ function openCloudSync(){
  document.body.appendChild(box)}
  if(window.AndroidBridge&&AndroidBridge.checkCloudAuth)AndroidBridge.checkCloudAuth();
 }
-const CLOUD_EDIT_KEY='mill_hisab_cloud_local_edit_v1';
+const CLOUD_EDIT_KEY='mill_hisab_cloud_local_edit_v1', CLOUD_ACCOUNT_KEY='mill_hisab_cloud_account_v1';
 let cloudReady=false, cloudDeviceId='';
 function cloudApplyRemote(payload){
  const remote=payload&&payload.data?payload.data:null;
  if(!remote||!remote.customers)return false;
  if(window.AndroidBridge&&AndroidBridge.saveAutoBackup){try{AndroidBridge.saveAutoBackup(JSON.stringify(db))}catch(e){}}
- db=remote;localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(CLOUD_EDIT_KEY,'0');
+ db=remote;localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(CLOUD_EDIT_KEY,'0');localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudEmail);
  if(typeof render==='function')render();
  cloudStatus('✓ অন্য ফোনের সর্বশেষ হিসাব এই ফোনে এসেছে');
  return true;
@@ -612,7 +612,8 @@ function onCloudDataResult(payload){
   cloudPendingData=payload;
   const local=JSON.parse(localStorage.getItem(KEY)||'null');
   const localExists=!!(local&&Array.isArray(local.customers)&&local.customers.length&&(Object.keys(local.meals||{}).length>0||(local.payments||[]).length>0||(local.expenses||[]).length>0||JSON.stringify(local.customers)!==JSON.stringify(SEED)));
-  if(localExists){
+  const sameAccount=localStorage.getItem(CLOUD_ACCOUNT_KEY)===cloudEmail;
+  if(localExists&&!sameAccount){
    if(confirm('এই Google অ্যাকাউন্টে ক্লাউডের হিসাব পাওয়া গেছে।\\nOK = আগে ফোনের Backup রেখে ক্লাউডের হিসাব আনুন\\nCancel = এই ফোনের হিসাব ক্লাউডে পাঠান')){
     cloudApplyRemote(payload);
    }else if(window.AndroidBridge&&AndroidBridge.uploadCloudData)AndroidBridge.uploadCloudData(JSON.stringify(db));
@@ -639,9 +640,10 @@ function onCloudLocalSave(json){
  if(window.AndroidBridge&&AndroidBridge.uploadCloudData){cloudStatus('পরিবর্তন ক্লাউডে সিঙ্ক হচ্ছে...');AndroidBridge.uploadCloudData(json)}
 }
 function onCloudUploadResult(ok,msg){
- if(ok){localStorage.setItem(CLOUD_EDIT_KEY,'0');cloudStatus('✓ '+msg+' — স্বয়ংক্রিয় সিঙ্ক চালু')}
+ if(ok){localStorage.setItem(CLOUD_EDIT_KEY,'0');localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudEmail);cloudStatus('✓ '+msg+' — স্বয়ংক্রিয় সিঙ্ক চালু')}
  else cloudStatus('সিঙ্ক সমস্যা: '+msg);
 }
 (function(){let b=document.createElement('button');b.textContent='☁️';b.title='ক্লাউড সিঙ্ক';b.onclick=openCloudSync;b.style.cssText='position:fixed;z-index:9998;right:14px;bottom:78px;width:48px;height:48px;border:0;border-radius:50%;background:#087f5b;color:white;font-size:22px;box-shadow:0 3px 12px #0004';document.body.appendChild(b)})();
+if(window.AndroidBridge&&AndroidBridge.checkCloudAuth)AndroidBridge.checkCloudAuth();
 
 </script></main><nav class="tabs"><button class="tab active" data-tab="home" onclick="go('home')">⌂<span>ড্যাশবোর্ড</span></button><button class="tab" data-tab="customers" onclick="go('customers')">♟<span>সদস্য</span></button><button class="tab plus-tab" data-tab="meals" onclick="go('meals')">＋</button><button class="tab" data-tab="report" onclick="go('report')">▥<span>রিপোর্ট</span></button><button class="tab" data-tab="settings" onclick="go('settings')">⚙<span>সেটিংস</span></button></nav><div class="drawer-backdrop" id="drawerBackdrop" onclick="toggleDrawer()"></div><aside class="side-drawer" id="sideDrawer"><div class="drawer-head"><b>◈ মিল হিসাব</b><p>সঠিক হিসাব, শান্তির ঘর</p></div><button class="drawer-link" onclick="drawerGo('home')"><span>⌂</span>ড্যাশবোর্ড</button><button class="drawer-link" onclick="drawerGo('customers')"><span>♟</span>সদস্য ব্যবস্থাপনা</button><button class="drawer-link" onclick="drawerGo('meals')"><span>🍴</span>দৈনিক মিল</button><button class="drawer-link" onclick="drawerGo('payments')"><span>▣</span>মিলের হিসাব / জমা</button><button class="drawer-link" onclick="drawerGo('expenses')"><span>🛒</span>খরচের হিসাব</button><button class="drawer-link" onclick="drawerGo('report')"><span>▥</span>মাসিক রিপোর্ট</button><button class="drawer-link" onclick="drawerGo('ledger')"><span>▤</span>সদস্যের খাতা</button><button class="drawer-link" onclick="drawerGo('excel')"><span>▦</span>এক্সেল হিসাব</button><button class="drawer-link" data-target="activity" onclick="drawerGo(this.dataset.target)"><span>◷</span>হিসাবের ইতিহাস</button><button class="drawer-link" onclick="drawerGo('backup')"><span>▧</span>ব্যাকআপ</button><button class="drawer-link" onclick="drawerGo('settings')"><span>⚙</span>সেটিংস</button><button class="drawer-link" onclick="toggleDark()"><span>☾</span>ডার্ক মোড</button></aside><script>function toggleDrawer(){document.getElementById('sideDrawer').classList.toggle('open');document.getElementById('drawerBackdrop').classList.toggle('open')}function drawerGo(id){toggleDrawer();go(id)}</script><script src="features.js"></script></body></html>
