@@ -108,7 +108,7 @@ public class MainActivity extends FragmentActivity {
         @JavascriptInterface
         public void uploadCloudData(String json) {
             if (firebaseAuth == null || firebaseAuth.getCurrentUser() == null || firestore == null || json == null || json.getBytes(StandardCharsets.UTF_8).length > 750 * 1024) {
-                if (webView != null) runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false,'লগইন নেই অথবা ডেটা ৭০০KB-এর বেশি')", null));
+                if (webView != null) runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false,'লগইন নেই অথবা ডেটা ৭০০KB-এর বেশি','')", null));
                 return;
             }
             String uid = firebaseAuth.getCurrentUser().getUid();
@@ -120,8 +120,8 @@ public class MainActivity extends FragmentActivity {
                 payload.put("deviceId", cloudDeviceId == null ? "unknown" : cloudDeviceId);
                 firestore.collection("users").document(uid).collection("appData").document("main")
                     .set(payload, SetOptions.merge())
-                    .addOnSuccessListener(v -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(true,'ক্লাউডে সেভ হয়েছে')", null)))
-                    .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(e.getMessage()) + ")", null)));
+                    .addOnSuccessListener(v -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(true,'ক্লাউডে সেভ হয়েছে'," + JSONObject.quote(uid) + ")", null)))
+                    .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(e.getMessage()) + "," + JSONObject.quote(uid) + ")", null)));
             } catch (Exception e) {
                 if (webView != null) runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(e.getMessage()) + ")", null));
             }
@@ -135,16 +135,23 @@ public class MainActivity extends FragmentActivity {
                 .addOnSuccessListener(doc -> {
                     Map<String, Object> response = new HashMap<>();
                     if (doc.exists() && doc.get("data") instanceof java.util.Map) {
+                        response.put("uid", uid);
                         response.put("data", doc.get("data"));
                         response.put("updatedAt", doc.getLong("updatedAt") == null ? 0L : doc.getLong("updatedAt"));
                         response.put("deviceId", doc.getString("deviceId") == null ? "" : doc.getString("deviceId"));
                     } else {
+                        response.put("uid", uid);
                         response.put("exists", false);
                     }
                     final String result = new Gson().toJson(response);
                     runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(" + result + ")", null));
                 })
                 .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(null)", null)));
+        }
+
+        @JavascriptInterface
+        public String getCloudUserId() {
+            return firebaseAuth == null || firebaseAuth.getCurrentUser() == null ? "" : firebaseAuth.getCurrentUser().getUid();
         }
 
         @JavascriptInterface
@@ -163,6 +170,7 @@ public class MainActivity extends FragmentActivity {
                     Map<String, Object> response = new HashMap<>();
                     response.put("data", doc.get("data"));
                     response.put("updatedAt", doc.getLong("updatedAt") == null ? 0L : doc.getLong("updatedAt"));
+                    response.put("uid", uid);
                     response.put("deviceId", doc.getString("deviceId") == null ? "" : doc.getString("deviceId"));
                     String payloadJson = new Gson().toJson(response);
                     if (webView != null) runOnUiThread(() ->
