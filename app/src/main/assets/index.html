@@ -892,6 +892,10 @@ function onCloudDataResult(payload){
    if(confirm('এই Google অ্যাকাউন্টে ক্লাউডের হিসাব পাওয়া গেছে।\\nOK = আগে ফোনের Backup রেখে ক্লাউডের হিসাব আনুন\\nCancel = এই ফোনের হিসাব ক্লাউডে পাঠান')){
     cloudApplyRemote(payload);
    }else{localStorage.setItem(CLOUD_EDIT_KEY,String(Date.now()));cloudUploadLocal(JSON.stringify(db))}
+  }else if(localExists&&sameAccount&&JSON.stringify(local)!==JSON.stringify(remote)){
+   if(confirm('এই ফোনের হিসাব ক্লাউডের হিসাব থেকে আলাদা।\\nOK = ফোনের হিসাব ক্লাউডে রাখুন\\nCancel = আগে ফোনের Backup রেখে ক্লাউডের হিসাব আনুন')){
+    localStorage.setItem(CLOUD_EDIT_KEY,String(Date.now()));cloudUploadLocal(JSON.stringify(db));
+   }else cloudApplyRemote(payload);
   }else cloudApplyRemote(payload);
   cloudStartRealtime();
  }else{
