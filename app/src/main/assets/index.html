@@ -818,7 +818,8 @@ function restoreAutoBackup(){
   if(!confirm('ফোনের সর্বশেষ স্বয়ংক্রিয় Backup ফিরিয়ে আনবেন? বর্তমান হিসাব আগে স্বয়ংক্রিয় Backup-এ রাখা হবে।'))return;
   if(AndroidBridge.saveAutoBackup)AndroidBridge.saveAutoBackup(JSON.stringify(db));
   db=recovered;localStorage.setItem(KEY,JSON.stringify(db));render();
-  if(cloudSignedIn&&cloudReady&&AndroidBridge.uploadCloudData)AndroidBridge.uploadCloudData(JSON.stringify(db));
+  localStorage.setItem(CLOUD_EDIT_KEY,String(Date.now()));
+  if(cloudSignedIn&&cloudReady)cloudUploadLocal(JSON.stringify(db));
   alert('Backup সফলভাবে ফিরিয়ে আনা হয়েছে');
  }catch(e){alert('Backup ফেরত আনা যায়নি: '+e.message)}
 }
