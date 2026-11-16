@@ -1,14 +1,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Each signed-in Google/Firebase user can access only their own app data.
+    // A signed-in user can access only their own account document.
     match /users/{userId}/appData/{documentId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId
-                         && documentId == "main"
-                         && request.resource.data.data is map
-                         && request.resource.data.updatedAt is int
-                         && request.resource.data.data.keys().hasAll(["customers", "meals", "payments"]);
+      allow read: if request.auth != null
+                  && request.auth.uid == userId
+                  && documentId == "main";
+      allow create, update: if request.auth != null
+                            && request.auth.uid == userId
+                            && documentId == "main"
+                            && request.resource.data.data is map
+                            && request.resource.data.updatedAt is int
+                            && request.resource.data.data.keys().hasAll(["customers", "meals", "payments"]);
+      allow delete: if false;
     }
   }
 }
