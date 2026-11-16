@@ -53,6 +53,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends FragmentActivity {
     private WebView webView;
@@ -106,7 +107,7 @@ public class MainActivity extends FragmentActivity {
 
         @JavascriptInterface
         public void uploadCloudData(String json) {
-            if (firebaseAuth == null || firebaseAuth.getCurrentUser() == null || firestore == null || json == null || json.length() > 700000) {
+            if (firebaseAuth == null || firebaseAuth.getCurrentUser() == null || firestore == null || json == null || json.getBytes(StandardCharsets.UTF_8).length > 750 * 1024) {
                 if (webView != null) runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false,'লগইন নেই অথবা ডেটা ৭০০KB-এর বেশি')", null));
                 return;
             }
