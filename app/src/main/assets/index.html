@@ -886,10 +886,9 @@ function onCloudAuthResult(ok,msg){
 }
 function onCloudDataResult(payload){
  if(!cloudSignedIn||!cloudUid)return;
- if(payload&&payload.uid&&payload.uid!==cloudUid)return;
+ if(!payload||payload.uid!==cloudUid)return;
  cloudInitialFetchInFlight=false;
- if(payload===null){cloudReady=false;cloudStatus('ক্লাউড থেকে ডেটা আনা যায়নি; ইন্টারনেট এলে আবার চেষ্টা হবে');return}
- if(payload.uid&&payload.uid!==cloudUid)return;
+ if(payload.error){cloudReady=false;cloudStatus('ক্লাউড থেকে ডেটা আনা যায়নি; ইন্টারনেট এলে আবার চেষ্টা হবে');return}
  if(cloudReady){onCloudRemoteUpdate(payload);return}
  const remote=payload&&payload.data?payload.data:null;
  if(remote&&remote.customers){
@@ -932,7 +931,7 @@ function onCloudLocalSave(json){
  cloudUploadLocal(json);
 }
 function onCloudUploadResult(ok,msg,uid){
- if(uid&&cloudUid&&uid!==cloudUid)return;
+ if(!cloudSignedIn||!cloudUid||uid!==cloudUid)return;
  const completedRevision=cloudUploadRevision;
  cloudUploadInFlight=false;
  if(ok){
