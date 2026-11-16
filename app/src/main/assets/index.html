@@ -840,6 +840,9 @@ function openCloudSync(){
 }
 const CLOUD_EDIT_KEY='mill_hisab_cloud_local_edit_v1', CLOUD_ACCOUNT_KEY='mill_hisab_cloud_account_v1';
 let cloudReady=false, cloudDeviceId='',cloudUid='',cloudInitialFetchInFlight=false;
+function cloudSetAccount(uid){
+ if(cloudUid!==uid){cloudUid=uid;cloudReady=false;cloudInitialFetchInFlight=false;cloudUploadInFlight=false;cloudUploadPending=false;}
+}
 function cloudRequestInitialData(){
  if(!cloudSignedIn||cloudInitialFetchInFlight||!window.AndroidBridge||!AndroidBridge.downloadCloudData)return;
  cloudInitialFetchInFlight=true;AndroidBridge.downloadCloudData();
@@ -873,12 +876,12 @@ function cloudManualSync(){
 }
 function onCloudAuthState(ok,email){
  cloudSignedIn=!!ok;cloudEmail=email||'';
- if(ok){cloudUid=window.AndroidBridge&&AndroidBridge.getCloudUserId?AndroidBridge.getCloudUserId():'';cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';cloudStatus('লগইন: '+cloudEmail+' — ক্লাউড পরীক্ষা হচ্ছে');cloudRequestInitialData()}
- else{cloudUid='';cloudReady=false;cloudInitialFetchInFlight=false;cloudStatus('Google Login করা নেই')}
+ if(ok){cloudSetAccount(window.AndroidBridge&&AndroidBridge.getCloudUserId?AndroidBridge.getCloudUserId():'');cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';cloudStatus('লগইন: '+cloudEmail+' — ক্লাউড পরীক্ষা হচ্ছে');cloudRequestInitialData()}
+ else{cloudSignedIn=false;cloudSetAccount('');cloudStatus('Google Login করা নেই')}
 }
 function onCloudAuthResult(ok,msg){
  if(!ok){cloudStatus('লগইন হয়নি: '+msg);return}
- cloudSignedIn=true;cloudEmail=msg||'';cloudUid=window.AndroidBridge&&AndroidBridge.getCloudUserId?AndroidBridge.getCloudUserId():'';cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';
+ cloudSignedIn=true;cloudEmail=msg||'';cloudSetAccount(window.AndroidBridge&&AndroidBridge.getCloudUserId?AndroidBridge.getCloudUserId():'');cloudDeviceId=window.AndroidBridge&&AndroidBridge.getCloudDeviceId?AndroidBridge.getCloudDeviceId():'';
  cloudStatus('লগইন হয়েছে: '+cloudEmail+' — ডেটা পরীক্ষা হচ্ছে');cloudRequestInitialData()
 }
 function onCloudDataResult(payload){
