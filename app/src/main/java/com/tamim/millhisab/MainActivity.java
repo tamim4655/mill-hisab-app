@@ -88,6 +88,10 @@ public class MainActivity extends FragmentActivity {
         @JavascriptInterface
         public void signOutCloud() {
             runOnUiThread(() -> {
+                if (cloudListener != null) {
+                    cloudListener.remove();
+                    cloudListener = null;
+                }
                 if (firebaseAuth != null) firebaseAuth.signOut();
                 if (googleSignInClient != null) googleSignInClient.signOut();
                 if (webView != null) webView.evaluateJavascript("window.onCloudAuthState && window.onCloudAuthState(false,'')", null);
