@@ -57,4 +57,8 @@ All months remain in this single table; the `month` column enables filtering. Th
 
 ## Current status
 
-This document records the verified source data model and safe target format. It does not claim that Android OAuth or Sheets API calls have been implemented yet.
+- Verified the existing local JSON data model and documented a one-table, lossless row format.
+- Added a Settings control that starts the native Google Sheets authorization flow.
+- Added Android `AuthorizationClient` authorization for the narrow `drive.file` scope. The short-lived access token remains in native memory and is not exposed to WebView JavaScript or persisted.
+- Existing Firebase code remains in the project as a temporary fallback while the Sheets path is developed and tested.
+- Not yet implemented: spreadsheet discovery/creation, reading/writing rows, change-log merge, month filtering in Sheets, and end-to-end two-device tests. The current authorization control alone does not sync any data.
