@@ -70,6 +70,17 @@ public class MainActivity extends FragmentActivity {
     private String pendingTitle;
     private String pendingMessage;
 
+    private long getCloudUpdatedAt(com.google.firebase.firestore.DocumentSnapshot doc) {
+        Object value = doc.get("updatedAt");
+        if (value instanceof com.google.firebase.Timestamp) {
+            return ((com.google.firebase.Timestamp) value).toDate().getTime();
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return 0L;
+    }
+
     private class AppBridge {
         @JavascriptInterface
         public void startGoogleSignIn() {
@@ -120,7 +131,7 @@ public class MainActivity extends FragmentActivity {
                 Map<String, Object> payload = new HashMap<>();
                 Map<String, Object> data = new Gson().fromJson(json, Map.class);
                 payload.put("data", data);
-                payload.put("updatedAt", System.currentTimeMillis());
+                payload.put("updatedAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
                 payload.put("deviceId", cloudDeviceId == null ? "unknown" : cloudDeviceId);
                 firestore.collection("users").document(uid).collection("appData").document("main")
                     .set(payload, SetOptions.merge())
@@ -141,7 +152,7 @@ public class MainActivity extends FragmentActivity {
                     if (doc.exists() && doc.get("data") instanceof java.util.Map) {
                         response.put("uid", uid);
                         response.put("data", doc.get("data"));
-                        response.put("updatedAt", doc.getLong("updatedAt") == null ? 0L : doc.getLong("updatedAt"));
+                        response.put("updatedAt", getCloudUpdatedAt(doc));
                         response.put("deviceId", doc.getString("deviceId") == null ? "" : doc.getString("deviceId"));
                     } else {
                         response.put("uid", uid);
@@ -179,7 +190,7 @@ public class MainActivity extends FragmentActivity {
                     if (error != null || doc == null || !doc.exists() || !(doc.get("data") instanceof java.util.Map)) return;
                     Map<String, Object> response = new HashMap<>();
                     response.put("data", doc.get("data"));
-                    response.put("updatedAt", doc.getLong("updatedAt") == null ? 0L : doc.getLong("updatedAt"));
+                    response.put("updatedAt", getCloudUpdatedAt(doc));
                     response.put("uid", uid);
                     response.put("deviceId", doc.getString("deviceId") == null ? "" : doc.getString("deviceId"));
                     String payloadJson = new Gson().toJson(response);
