@@ -55,10 +55,17 @@ All months remain in this single table; the `month` column enables filtering. Th
 5. Test two-device simultaneous edits, offline retries, duplicate retries, deletion/tombstones, first-time migration, and full restore.
 6. Only then offer a test APK. Preserve the existing Firebase backup/sync path until the user verifies Sheets behavior.
 
+## OAuth and cross-device discovery findings (2026-11-18)
+
+- Google’s official Sheets API scope guide explicitly lists `drive.file` as a supported, recommended non-sensitive scope for Sheets API operations. The current narrow scope can therefore be used for spreadsheet creation and values read/write on files the app is authorized to access. See https://developers.google.com/workspace/sheets/api/scopes.
+- The Sheets API itself has no list-spreadsheets method. Google’s create/manage guide says finding a user's spreadsheets uses Drive `files.list`, and listing all spreadsheets requires a restricted Drive scope. See https://developers.google.com/workspace/sheets/api/guides/create.
+- Therefore, do not implement broad Drive-wide discovery under the current narrow permission. Preferred flow: create on first phone; use Google Picker on another phone to select the same sheet (Picker + `drive.file`), then store the selected spreadsheet ID locally. This requires enabling Google Picker API and configuring an API key in the Cloud project before implementation/testing.
+- Existing record deletion is currently a physical array filter in the web app (`delPay`, `deleteExpense`); it is not a tombstone. A safe sync journal must capture deletion events before removal, or the UI/data model must be changed to retain tombstones. A simple export of the current DB cannot reconstruct those deletions across devices.
+
 ## Current status
 
 - Verified the existing local JSON data model and documented a one-table, lossless row format.
 - Added a Settings control that starts the native Google Sheets authorization flow.
 - Added Android `AuthorizationClient` authorization for the narrow `drive.file` scope. The short-lived access token remains in native memory and is not exposed to WebView JavaScript or persisted.
 - Existing Firebase code remains in the project as a temporary fallback while the Sheets path is developed and tested.
-- Not yet implemented: spreadsheet discovery/creation, reading/writing rows, change-log merge, month filtering in Sheets, and end-to-end two-device tests. The current authorization control alone does not sync any data.
+- Not yet implemented: Google Picker integration, spreadsheet creation, reading/writing rows, change-log merge, month filtering in Sheets, and end-to-end two-device tests. The current authorization control alone does not sync any data.
