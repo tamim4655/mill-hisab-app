@@ -949,7 +949,7 @@ function onCloudUploadResult(ok,msg,uid){
    cloudUploadPending=true;
   }
  }else cloudStatus('সিঙ্ক সমস্যা: '+msg+' — ফোনের হিসাব নিরাপদে রাখা হয়েছে');
- if(cloudUploadPending&&cloudSignedIn&&cloudReady)cloudUploadLocal(JSON.stringify(db));
+ if(ok&&cloudUploadPending&&cloudSignedIn&&cloudReady)cloudUploadLocal(JSON.stringify(db));
 }
 function onCloudConnectivityRestored(){
  if(!cloudSignedIn)return;
