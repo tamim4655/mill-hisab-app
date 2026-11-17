@@ -680,9 +680,11 @@ input:focus,select:focus{border-color:#20a365;box-shadow:0 0 0 4px rgba(32,163,1
 <h2>সেটিংস</h2>
 <p class="settings-intro">আপনার অ্যাপের পছন্দ ও নিরাপত্তা নিয়ন্ত্রণ করুন</p>
 <div class="minimal-cloud">
-  <div class="minimal-cloud-top"><span class="minimal-cloud-icon">☁</span><div><h3>Google অ্যাকাউন্ট ও Cloud Sync</h3><p>একই Google অ্যাকাউন্টে একাধিক ফোনের হিসাব মিলিয়ে রাখুন</p></div></div>
-  <p id="cloudStatus">Google Login করে আপনার হিসাব সিঙ্ক করুন</p>
-  <div class="minimal-cloud-actions"><button id="cloudLoginBtn" onclick="(window.AndroidBridge&&AndroidBridge.startGoogleSignIn?AndroidBridge.startGoogleSignIn():cloudNeedsApk())">Google দিয়ে লগইন</button><button class="secondary" id="cloudSyncBtn" onclick="cloudManualSync()">এখন সিঙ্ক</button><button class="danger" id="cloudLogoutBtn" onclick="(window.AndroidBridge&&AndroidBridge.signOutCloud?AndroidBridge.signOutCloud():cloudNoApk())">লগআউট</button></div>
+  <div class="minimal-cloud-top"><span class="minimal-cloud-icon">▦</span><div><h3>Google Sheets সংযোগ</h3><p>একই Google অ্যাকাউন্টে একাধিক ফোনের মাসভিত্তিক হিসাব রাখুন</p></div></div>
+  <p id="sheetsStatus">Google Sheets সংযোগ চালু করতে অনুমতি দিন</p>
+  <div class="minimal-cloud-actions"><button id="sheetsConnectBtn" onclick="(window.AndroidBridge&&AndroidBridge.authorizeGoogleSheets?AndroidBridge.authorizeGoogleSheets():sheetsNeedsApk())">Google Sheets অনুমতি দিন</button></div>
+  <p id="cloudStatus" class="hidden">পুরোনো Cloud Backup-এর অবস্থা</p>
+  <div class="minimal-cloud-actions hidden"><button id="cloudLoginBtn" onclick="(window.AndroidBridge&&AndroidBridge.startGoogleSignIn?AndroidBridge.startGoogleSignIn():cloudNeedsApk())">পুরোনো Cloud Login</button><button class="secondary" id="cloudSyncBtn" onclick="cloudManualSync()">এখন সিঙ্ক</button><button class="danger" id="cloudLogoutBtn" onclick="(window.AndroidBridge&&AndroidBridge.signOutCloud?AndroidBridge.signOutCloud():cloudNoApk())">লগআউট</button></div>
 </div>
 <div class="minimal-section">
   <div class="minimal-section-title"><h3>চেহারা</h3><p>অ্যাপটি নিজের পছন্দমতো সাজান</p></div>
@@ -870,6 +872,13 @@ function cloudUploadLocal(json){
  cloudUploadInFlight=true;cloudUploadPending=false;
  cloudStatus('পরিবর্তন ক্লাউডে সিঙ্ক হচ্ছে...');
  AndroidBridge.uploadCloudData(json||JSON.stringify(db));
+}
+function sheetsNeedsApk(){const e=document.getElementById('sheetsStatus');if(e)e.textContent='Google Sheets সংযোগের জন্য Android APK ব্যবহার করুন'}
+function onSheetsAuthorizationResult(ok,msg){
+ const status=document.getElementById('sheetsStatus');
+ if(status)status.textContent=ok?'✓ '+(msg||'Google Sheets অনুমতি দেওয়া হয়েছে'):(msg||'Google Sheets সংযোগ হয়নি');
+ const button=document.getElementById('sheetsConnectBtn');
+ if(button)button.textContent=ok?'অনুমতি পাওয়া গেছে':'আবার অনুমতি দিন';
 }
 function cloudManualSync(){
  if(!cloudSignedIn){cloudStatus('আগে Google Login করুন');return}
