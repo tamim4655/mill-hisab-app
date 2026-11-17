@@ -10,7 +10,8 @@ service cloud.firestore {
                             && request.auth.uid == userId
                             && documentId == "main"
                             && request.resource.data.data is map
-                            && request.resource.data.updatedAt is int
+                            && (request.resource.data.updatedAt is timestamp
+                                || request.resource.data.updatedAt is int)
                             && request.resource.data.data.keys().hasAll(["customers", "meals", "payments"]);
       allow delete: if false;
     }
