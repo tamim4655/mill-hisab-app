@@ -818,7 +818,7 @@ function restoreAutoBackup(){
   if(!confirm('ফোনের সর্বশেষ স্বয়ংক্রিয় Backup ফিরিয়ে আনবেন? বর্তমান হিসাব আগে স্বয়ংক্রিয় Backup-এ রাখা হবে।'))return;
   if(AndroidBridge.saveAutoBackup)AndroidBridge.saveAutoBackup(JSON.stringify(db));
   db=recovered;localStorage.setItem(KEY,JSON.stringify(db));render();
-  localStorage.setItem(CLOUD_EDIT_KEY,String(Date.now()));
+  cloudMarkLocalDirty();
   if(cloudSignedIn&&cloudReady)cloudUploadLocal(JSON.stringify(db));
   alert('Backup সফলভাবে ফিরিয়ে আনা হয়েছে');
  }catch(e){alert('Backup ফেরত আনা যায়নি: '+e.message)}
@@ -839,6 +839,7 @@ function openCloudSync(){
  if(window.AndroidBridge&&AndroidBridge.checkCloudAuth)AndroidBridge.checkCloudAuth();
 }
 const CLOUD_EDIT_KEY='mill_hisab_cloud_local_edit_v1', CLOUD_ACCOUNT_KEY='mill_hisab_cloud_account_v1';
+function cloudMarkLocalDirty(){const previous=Number(localStorage.getItem(CLOUD_EDIT_KEY)||0);const revision=String(Math.max(Date.now(),previous+1));localStorage.setItem(CLOUD_EDIT_KEY,revision);return revision}
 let cloudReady=false, cloudDeviceId='',cloudUid='',cloudInitialFetchInFlight=false,cloudLastRemoteUpdatedAt=0;
 function cloudSetAccount(uid){
  if(cloudUid!==uid){cloudUid=uid;cloudReady=false;cloudInitialFetchInFlight=false;cloudUploadInFlight=false;cloudUploadPending=false;cloudLastRemoteUpdatedAt=0;}
@@ -863,7 +864,7 @@ function cloudHasPendingLocalChanges(){return Number(localStorage.getItem(CLOUD_
 function cloudStartRealtime(){if(window.AndroidBridge&&AndroidBridge.startCloudListener)AndroidBridge.startCloudListener();cloudReady=true}
 function cloudUploadLocal(json){
  if(!cloudSignedIn||!window.AndroidBridge||!AndroidBridge.uploadCloudData){cloudStatus('পরিবর্তন ফোনে সেভ আছে; Google Login হলে সিঙ্ক হবে');return}
- if(!cloudHasPendingLocalChanges())localStorage.setItem(CLOUD_EDIT_KEY,String(Date.now()));
+ if(!cloudHasPendingLocalChanges())cloudMarkLocalDirty();
  if(cloudUploadInFlight){cloudUploadPending=true;return}
  cloudUploadRevision=localStorage.getItem(CLOUD_EDIT_KEY)||String(Date.now());
  cloudUploadInFlight=true;cloudUploadPending=false;
@@ -905,16 +906,16 @@ function onCloudDataResult(payload){
   }else if(localExists&&!sameAccount){
    if(confirm('এই Google অ্যাকাউন্টে ক্লাউডের হিসাব পাওয়া গেছে।\\nOK = আগে ফোনের Backup রেখে ক্লাউডের হিসাব আনুন\\nCancel = এই ফোনের হিসাব ক্লাউডে পাঠান')){
     cloudApplyRemote(payload);
-   }else{localStorage.setItem(CLOUD_EDIT_KEY,String(Date.now()));cloudUploadLocal(JSON.stringify(db))}
+   }else{cloudMarkLocalDirty();cloudUploadLocal(JSON.stringify(db))}
   }else if(localExists&&sameAccount&&JSON.stringify(local)!==JSON.stringify(remote)){
    if(confirm('এই ফোনের হিসাব ক্লাউডের হিসাব থেকে আলাদা।\\nOK = ফোনের হিসাব ক্লাউডে রাখুন\\nCancel = আগে ফোনের Backup রেখে ক্লাউডের হিসাব আনুন')){
-    localStorage.setItem(CLOUD_EDIT_KEY,String(Date.now()));cloudUploadLocal(JSON.stringify(db));
+    cloudMarkLocalDirty();cloudUploadLocal(JSON.stringify(db));
    }else cloudApplyRemote(payload);
   }else cloudApplyRemote(payload);
   cloudStartRealtime();
  }else{
   cloudStatus('ক্লাউডে আগের হিসাব নেই — এই ফোনের হিসাব প্রথমবার পাঠানো হচ্ছে');
-  if(!cloudHasPendingLocalChanges())localStorage.setItem(CLOUD_EDIT_KEY,String(Date.now()));
+  if(!cloudHasPendingLocalChanges())cloudMarkLocalDirty();
   cloudUploadLocal(JSON.stringify(db));
   cloudStartRealtime();
  }
@@ -931,7 +932,7 @@ function onCloudRemoteUpdate(payload){
  }else cloudApplyRemote(payload);
 }
 function onCloudLocalSave(json){
- localStorage.setItem(CLOUD_EDIT_KEY,String(Date.now()));
+ cloudMarkLocalDirty();
  if(!cloudSignedIn||!cloudReady){cloudStatus('ফোনে সেভ হয়েছে; ইন্টারনেট/লগইন হলে সিঙ্ক হবে');return}
  cloudUploadLocal(json);
 }
