@@ -27,6 +27,10 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.WindowManager;
 import androidx.biometric.BiometricPrompt;
+import com.google.android.gms.auth.api.identity.AuthorizationRequest;
+import com.google.android.gms.auth.api.identity.AuthorizationResult;
+import com.google.android.gms.auth.api.identity.Identity;
+import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
@@ -58,6 +62,9 @@ import java.nio.charset.StandardCharsets;
 public class MainActivity extends FragmentActivity {
     private WebView webView;
     private static final int RC_GOOGLE_SIGN_IN = 9101;
+    private static final int RC_GOOGLE_SHEETS_AUTH = 9102;
+    // Access tokens are kept in memory only; they are short-lived and must never be persisted.
+    private String googleSheetsAccessToken;
     private FirebaseAuth firebaseAuth;
     private FirebaseFirestore firestore;
     private GoogleSignInClient googleSignInClient;
@@ -69,6 +76,52 @@ public class MainActivity extends FragmentActivity {
     private static final String CHANNEL_ID = "mill_hisab_due_reminders";
     private String pendingTitle;
     private String pendingMessage;
+
+    private static final java.util.List<Scope> GOOGLE_SHEETS_SCOPES =
+            java.util.Collections.singletonList(new Scope("https://www.googleapis.com/auth/drive.file"));
+
+    private void notifySheetsAuthorization(boolean ok, String message) {
+        if (webView == null) return;
+        String script = "window.onSheetsAuthorizationResult && window.onSheetsAuthorizationResult("
+                + ok + "," + JSONObject.quote(message == null ? "" : message) + ")";
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript(script, null);
+        });
+    }
+
+    private void requestGoogleSheetsAuthorization() {
+        AuthorizationRequest request = AuthorizationRequest.builder()
+                .setRequestedScopes(GOOGLE_SHEETS_SCOPES)
+                .build();
+        Identity.getAuthorizationClient(this).authorize(request)
+                .addOnSuccessListener(result -> {
+                    if (result.hasResolution() && result.getPendingIntent() != null) {
+                        try {
+                            startIntentSenderForResult(
+                                    result.getPendingIntent().getIntentSender(),
+                                    RC_GOOGLE_SHEETS_AUTH, null, 0, 0, 0);
+                        } catch (android.content.IntentSender.SendIntentException e) {
+                            notifySheetsAuthorization(false, "Google অনুমতি পেজ খোলা যায়নি: " + e.getMessage());
+                        }
+                    } else {
+                        acceptGoogleSheetsAuthorization(result);
+                    }
+                })
+                .addOnFailureListener(e ->
+                        notifySheetsAuthorization(false, "Google Sheets অনুমতি পাওয়া যায়নি: " + e.getMessage()));
+    }
+
+    private void acceptGoogleSheetsAuthorization(AuthorizationResult result) {
+        String token = result == null ? null : result.getAccessToken();
+        if (token == null || token.trim().isEmpty()) {
+            googleSheetsAccessToken = null;
+            notifySheetsAuthorization(false, "Google access token পাওয়া যায়নি");
+            return;
+        }
+        // Keep the short-lived token inside the native layer. Never expose it to WebView JavaScript.
+        googleSheetsAccessToken = token;
+        notifySheetsAuthorization(true, "Google Sheets অনুমতি দেওয়া হয়েছে");
+    }
 
     private long getCloudUpdatedAt(com.google.firebase.firestore.DocumentSnapshot doc) {
         Object value = doc.get("updatedAt");
@@ -82,6 +135,11 @@ public class MainActivity extends FragmentActivity {
     }
 
     private class AppBridge {
+        @JavascriptInterface
+        public void authorizeGoogleSheets() {
+            runOnUiThread(() -> requestGoogleSheetsAuthorization());
+        }
+
         @JavascriptInterface
         public void startGoogleSignIn() {
             runOnUiThread(() -> {
@@ -503,6 +561,22 @@ public class MainActivity extends FragmentActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RC_GOOGLE_SHEETS_AUTH) {
+            if (resultCode == RESULT_OK) {
+                try {
+                    AuthorizationResult authorizationResult =
+                            Identity.getAuthorizationClient(this).getAuthorizationResultFromIntent(data);
+                    acceptGoogleSheetsAuthorization(authorizationResult);
+                } catch (Exception e) {
+                    googleSheetsAccessToken = null;
+                    notifySheetsAuthorization(false, "Google অনুমতি সম্পন্ন হয়নি: " + e.getMessage());
+                }
+            } else {
+                googleSheetsAccessToken = null;
+                notifySheetsAuthorization(false, "Google Sheets অনুমতি বাতিল করা হয়েছে");
+            }
+            return;
+        }
         if (requestCode == RC_GOOGLE_SIGN_IN) {
             try {
                 com.google.android.gms.auth.api.signin.GoogleSignInAccount account =
