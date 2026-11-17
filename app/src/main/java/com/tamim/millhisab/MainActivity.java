@@ -250,23 +250,34 @@ public class MainActivity extends FragmentActivity {
             if (json == null || json.length() == 0 || json.length() > 10 * 1024 * 1024) return;
             File dir = new File(getFilesDir(), "auto-backups");
             if (!dir.exists() && !dir.mkdirs()) return;
-            String day = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
-            File target = new File(dir, "backup-" + day + ".json");
+            String stamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US).format(new Date());
+            String unique = UUID.randomUUID().toString().substring(0, 8);
+            File target = new File(dir, "backup-" + stamp + "-" + unique + ".json");
             File temp = new File(dir, target.getName() + ".tmp");
             try {
-                FileOutputStream out = new FileOutputStream(temp);
-                out.write(json.getBytes("UTF-8")); out.flush(); out.close();
-                if (target.exists()) target.delete();
+                byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+                try (FileOutputStream out = new FileOutputStream(temp)) {
+                    out.write(bytes);
+                    out.flush();
+                    out.getFD().sync();
+                }
                 if (!temp.renameTo(target)) {
-                    FileOutputStream fallback = new FileOutputStream(target);
-                    fallback.write(json.getBytes("UTF-8")); fallback.flush(); fallback.close(); temp.delete();
+                    // Keep the previous backups intact if the atomic rename is unavailable.
+                    try (FileOutputStream out = new FileOutputStream(target)) {
+                        out.write(bytes);
+                        out.flush();
+                        out.getFD().sync();
+                    }
+                    temp.delete();
                 }
                 File[] backups = dir.listFiles((folder, name) -> name.startsWith("backup-") && name.endsWith(".json"));
                 if (backups != null) {
                     Arrays.sort(backups, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
                     for (int i = 30; i < backups.length; i++) backups[i].delete();
                 }
-            } catch (Exception ignored) { temp.delete(); }
+            } catch (Exception ignored) {
+                temp.delete();
+            }
         }
 
         @JavascriptInterface
