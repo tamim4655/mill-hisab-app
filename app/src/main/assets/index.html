@@ -876,16 +876,22 @@ function cloudApplyRemote(payload){
  cloudLastRemoteUpdatedAt=Math.max(cloudLastRemoteUpdatedAt,Number(payload.updatedAt)||0);
  if(window.AndroidBridge&&AndroidBridge.saveAutoBackup){try{AndroidBridge.saveAutoBackup(JSON.stringify(db))}catch(e){}}
  const incoming=JSON.parse(JSON.stringify(remote));
- incoming.syncTombstones=mergeSyncTombstones(db.syncTombstones,incoming.syncTombstones);
+ const remoteTombstones=Array.isArray(incoming.syncTombstones)?incoming.syncTombstones:[];
+ incoming.syncTombstones=mergeSyncTombstones(db.syncTombstones,remoteTombstones);
+ const remoteIds=new Set(remoteTombstones.filter(x=>x&&x.opId).map(x=>String(x.opId)));
+ const hasLocalTombstones=incoming.syncTombstones.some(x=>x&&x.opId&&!remoteIds.has(String(x.opId)));
  db=applySyncTombstones(incoming,incoming.syncTombstones);
- localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(CLOUD_EDIT_KEY,'0');localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudUid);
+ localStorage.setItem(KEY,JSON.stringify(db));
+ if(hasLocalTombstones)cloudMarkLocalDirty();else localStorage.setItem(CLOUD_EDIT_KEY,'0');
+ localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudUid);
  if(typeof render==='function')render();
- cloudStatus('✓ অন্য ফোনের হিসাব এসেছে; মুছে ফেলা পেমেন্ট ও খরচ পুনরায় ফিরবে না');
+ cloudStatus(hasLocalTombstones?'✓ ডিলিট-রেকর্ড একত্র হয়েছে; অন্য ফোনেও পাঠানো হচ্ছে':'✓ অন্য ফোনের হিসাব এসেছে; মুছে ফেলা পেমেন্ট ও খরচ পুনরায় ফিরবে না');
+ if(hasLocalTombstones&&cloudReady)cloudUploadLocal(JSON.stringify(db));
  return true;
 }
 let cloudUploadInFlight=false,cloudUploadPending=false,cloudUploadRevision='0';
 function cloudHasPendingLocalChanges(){return Number(localStorage.getItem(CLOUD_EDIT_KEY)||0)>0}
-function cloudStartRealtime(){if(window.AndroidBridge&&AndroidBridge.startCloudListener)AndroidBridge.startCloudListener();cloudReady=true}
+function cloudStartRealtime(){if(window.AndroidBridge&&AndroidBridge.startCloudListener)AndroidBridge.startCloudListener();cloudReady=true;if(cloudHasPendingLocalChanges())cloudUploadLocal(JSON.stringify(db))}
 function cloudUploadLocal(json){
  if(!cloudSignedIn||!window.AndroidBridge||!AndroidBridge.uploadCloudData){cloudStatus('পরিবর্তন ফোনে সেভ আছে; Google Login হলে সিঙ্ক হবে');return}
  if(!cloudHasPendingLocalChanges())cloudMarkLocalDirty();
