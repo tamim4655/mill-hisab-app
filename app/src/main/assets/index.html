@@ -850,15 +850,37 @@ function cloudRequestInitialData(){
  if(!cloudSignedIn||cloudInitialFetchInFlight||!window.AndroidBridge||!AndroidBridge.downloadCloudData)return;
  cloudInitialFetchInFlight=true;AndroidBridge.downloadCloudData();
 }
+function mergeSyncTombstones(localItems,remoteItems){
+ const byId=new Map();
+ [...(Array.isArray(localItems)?localItems:[]),...(Array.isArray(remoteItems)?remoteItems:[])].forEach(item=>{
+  if(!item||!item.opId||!item.recordType||!item.recordId)return;
+  byId.set(String(item.opId),item);
+ });
+ return Array.from(byId.values()).slice(-5000);
+}
+function applySyncTombstones(data,tombstones){
+ const deletedPayments=new Set(),deletedExpenses=new Set();
+ tombstones.forEach(item=>{
+  if(!item||item.deleted!==true)return;
+  if(item.recordType==='payment')deletedPayments.add(String(item.recordId));
+  if(item.recordType==='expense')deletedExpenses.add(String(item.recordId));
+ });
+ data.payments=(Array.isArray(data.payments)?data.payments:[]).filter(item=>!deletedPayments.has(String(item.id)));
+ data.expenses=(Array.isArray(data.expenses)?data.expenses:[]).filter(item=>!deletedExpenses.has(String(item.id)));
+ return data;
+}
 function cloudApplyRemote(payload){
  if(!payload||payload.uid!==cloudUid)return false;
  const remote=payload.data||null;
  if(!remote||!remote.customers)return false;
  cloudLastRemoteUpdatedAt=Math.max(cloudLastRemoteUpdatedAt,Number(payload.updatedAt)||0);
  if(window.AndroidBridge&&AndroidBridge.saveAutoBackup){try{AndroidBridge.saveAutoBackup(JSON.stringify(db))}catch(e){}}
- db=remote;localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(CLOUD_EDIT_KEY,'0');localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudUid);
+ const incoming=JSON.parse(JSON.stringify(remote));
+ incoming.syncTombstones=mergeSyncTombstones(db.syncTombstones,incoming.syncTombstones);
+ db=applySyncTombstones(incoming,incoming.syncTombstones);
+ localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(CLOUD_EDIT_KEY,'0');localStorage.setItem(CLOUD_ACCOUNT_KEY,cloudUid);
  if(typeof render==='function')render();
- cloudStatus('✓ অন্য ফোনের সর্বশেষ হিসাব এই ফোনে এসেছে');
+ cloudStatus('✓ অন্য ফোনের হিসাব এসেছে; মুছে ফেলা পেমেন্ট ও খরচ পুনরায় ফিরবে না');
  return true;
 }
 let cloudUploadInFlight=false,cloudUploadPending=false,cloudUploadRevision='0';
