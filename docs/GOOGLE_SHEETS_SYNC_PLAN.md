@@ -63,7 +63,7 @@ All months remain in this single table; the `month` column enables filtering. Th
 
 - Fixed a missed integration in the existing app save path: normal database saves now call the existing `onCloudLocalSave` hook after local persistence/render. This lets the retained Firebase sync receive ordinary edits (including the local tombstone journal) when its existing login/connection is active. This is not Google Sheets upload, and the legacy whole-database Firebase conflict model remains unchanged.
 
-- Payment and expense deletion now records a local tombstone in `db.syncTombstones` before the existing array item is removed. Each event carries an operation ID, record type/ID, original record snapshot, deletion time, and device ID. The journal is capped at 5,000 most-recent events. These events are persisted with the normal local database save. They are not uploaded anywhere yet; remote append, acknowledgement, retry, and safe compaction are still unimplemented. A simple export of the current DB cannot reconstruct those deletions across devices.
+- Payment and expense deletion now records a local tombstone in `db.syncTombstones` before the existing array item is removed. Each event carries an operation ID, record type/ID, original record snapshot, deletion time, and device ID. The journal currently has no size cap: deletion events are retained rather than silently discarded until a safe remote acknowledgement/compaction protocol exists. These events are persisted with the normal local database save. They are not uploaded to Sheets; the existing Firebase whole-database path can carry the local journal, but this does not provide general conflict-safe record merging. A simple export of the current DB cannot reconstruct deletions that were never synchronized.
 
 ## Current status
 
@@ -73,3 +73,13 @@ All months remain in this single table; the `month` column enables filtering. Th
 - Existing Firebase code remains in the project as a temporary fallback while the Sheets path is developed and tested.
 - Added local tombstone capture for payment and expense deletions; this is only a local journal, not cloud synchronization.
 - Not yet implemented: Google Picker integration, spreadsheet creation, reading/writing rows, change-log merge/acknowledgement, month filtering in Sheets, and end-to-end two-device tests. The current authorization control alone does not sync any data.
+
+
+## Latest implementation update (2026-11-19)
+
+- Added a native Google Sheets API request that creates a spreadsheet titled "মিল হিসাব" with one worksheet titled "হিসাব" after the user grants the existing `drive.file` authorization.
+- The app writes the documented 15-column table header to row 1 using the Sheets Values API.
+- The returned spreadsheet ID is stored locally in Android SharedPreferences; the WebView receives only the spreadsheet ID and a user-facing result, never the OAuth access token.
+- The creation control is exposed in Settings after successful authorization. This is a first-device workbook-creation step only.
+- Not yet implemented: writing actual customer/meal/payment/expense records, reading and merging sheet rows, retry/idempotency journal operations, selecting the same spreadsheet on another phone, and two-device verification. Creating the workbook and its header is not yet data synchronization.
+- A build for the latest source changes is pending; do not distribute the APK until the latest workflow completes successfully and the feature is tested on a device.
