@@ -915,9 +915,9 @@ function onSheetsSpreadsheetResult(ok,spreadsheetId,msg){
  const status=document.getElementById('sheetsStatus');
  const createButton=document.getElementById('sheetsCreateBtn');
  if(status)status.textContent=ok?(msg||'Google Sheet তৈরি হয়েছে'):(msg||'Google Sheet তৈরি হয়নি');
- if(ok&&spreadsheetId){
+ if(spreadsheetId){
   localStorage.setItem('mill_hisab_sheets_id_v1',spreadsheetId);
-  if(createButton)createButton.textContent='Google Sheet তৈরি হয়েছে';
+  if(createButton&&ok)createButton.textContent='Google Sheet তৈরি হয়েছে';
  }
 }
 function cloudManualSync(){
