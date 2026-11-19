@@ -45,8 +45,11 @@ jobs:
           yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Check JavaScript syntax
-        run: node --check app/src/main/assets/features.js
+      - name: Check JavaScript syntax and serializer tests
+        run: |
+          node --check app/src/main/assets/features.js
+          node --check app/src/main/assets/sheets-sync.js
+          node --test tests/sheets-sync.test.js
 
       - name: Check inline JavaScript syntax
         shell: bash
