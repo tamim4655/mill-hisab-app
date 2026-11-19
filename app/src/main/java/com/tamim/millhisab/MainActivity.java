@@ -136,6 +136,77 @@ public class MainActivity extends FragmentActivity {
         });
     }
 
+    private void notifySheetsCheckResult(boolean ok, int rowCount, String message) {
+        if (webView == null) return;
+        String script = "window.onSheetsCheckResult && window.onSheetsCheckResult("
+                + ok + "," + rowCount + "," + JSONObject.quote(message == null ? "" : message) + ")";
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript(script, null);
+        });
+    }
+
+    // Read-only connection check: verifies access to the saved workbook without changing rows.
+    private void checkGoogleSpreadsheet() {
+        final String token = googleSheetsAccessToken;
+        final String spreadsheetId = getSharedPreferences("mill_hisab_sheets", MODE_PRIVATE)
+                .getString("spreadsheet_id", "");
+        if (token == null || token.trim().isEmpty()) {
+            notifySheetsCheckResult(false, 0, "আগে Google Sheets অনুমতি দিন");
+            return;
+        }
+        if (spreadsheetId == null || spreadsheetId.trim().isEmpty()) {
+            notifySheetsCheckResult(false, 0, "এই ফোনে Google Sheet তৈরি করা হয়নি");
+            return;
+        }
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            try {
+                String range = java.net.URLEncoder.encode("'হিসাব'!A1:P", "UTF-8");
+                URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId
+                        + "/values/" + range);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(20000);
+                connection.setReadTimeout(20000);
+                connection.setRequestProperty("Authorization", "Bearer " + token);
+                int status = connection.getResponseCode();
+                InputStream stream = status >= 200 && status < 300
+                        ? connection.getInputStream() : connection.getErrorStream();
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                if (stream != null) {
+                    byte[] buffer = new byte[4096];
+                    int count;
+                    while ((count = stream.read(buffer)) != -1) bytes.write(buffer, 0, count);
+                    stream.close();
+                }
+                String responseText = bytes.toString("UTF-8");
+                if (status < 200 || status >= 300) {
+                    throw new Exception("Sheets API (" + status + "): " + responseText);
+                }
+                JSONObject response = new JSONObject(responseText);
+                org.json.JSONArray values = response.optJSONArray("values");
+                int rowCount = values == null ? 0 : values.length();
+                if (rowCount == 0) {
+                    notifySheetsCheckResult(false, 0, "শিটে শিরোনাম পাওয়া যায়নি; আবার শিট তৈরি/শিরোনাম সেট করুন");
+                    return;
+                }
+                org.json.JSONArray header = values.optJSONArray(0);
+                if (header == null || header.length() < 16
+                        || !"schema_version".equals(header.optString(0))
+                        || !"deleted".equals(header.optString(15))) {
+                    notifySheetsCheckResult(false, rowCount, "শিটের কলাম কাঠামো প্রত্যাশিত নয়");
+                    return;
+                }
+                notifySheetsCheckResult(true, rowCount,
+                        "Google Sheet সংযোগ ঠিক আছে; মোট " + rowCount + "টি সারি পাওয়া গেছে (শিরোনামসহ)");
+            } catch (Exception e) {
+                notifySheetsCheckResult(false, 0, "Google Sheet পরীক্ষা ব্যর্থ: " + e.getMessage());
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        }, "check-google-sheet").start();
+    }
+
     private void writeGoogleSpreadsheetHeaders(String token, String spreadsheetId) throws Exception {
         String range = java.net.URLEncoder.encode("'হিসাব'!A1:P1", "UTF-8");
         URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId
@@ -276,6 +347,11 @@ public class MainActivity extends FragmentActivity {
         @JavascriptInterface
         public void createGoogleSpreadsheet() {
             MainActivity.this.createGoogleSpreadsheet();
+        }
+
+        @JavascriptInterface
+        public void checkGoogleSpreadsheet() {
+            MainActivity.this.checkGoogleSpreadsheet();
         }
 
         @JavascriptInterface
