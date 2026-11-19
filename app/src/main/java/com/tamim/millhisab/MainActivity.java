@@ -136,6 +136,48 @@ public class MainActivity extends FragmentActivity {
         });
     }
 
+    private void writeGoogleSpreadsheetHeaders(String token, String spreadsheetId) throws Exception {
+        String range = java.net.URLEncoder.encode("'হিসাব'!A1:O1", "UTF-8");
+        URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId
+                + "/values/" + range + "?valueInputOption=RAW");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        try {
+            connection.setRequestMethod("PUT");
+            connection.setConnectTimeout(20000);
+            connection.setReadTimeout(20000);
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            org.json.JSONArray headers = new org.json.JSONArray();
+            String[] columns = {"schema_version", "record_type", "record_id", "month", "date",
+                    "member_id", "member_name", "quantity", "unit_rate", "amount", "category",
+                    "description", "payload_json", "updated_at", "device_id"};
+            for (String column : columns) headers.put(column);
+            org.json.JSONArray rows = new org.json.JSONArray();
+            rows.put(headers);
+            JSONObject body = new JSONObject();
+            body.put("values", rows);
+            try (java.io.OutputStream output = connection.getOutputStream()) {
+                output.write(body.toString().getBytes(StandardCharsets.UTF_8));
+                output.flush();
+            }
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) {
+                InputStream error = connection.getErrorStream();
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                if (error != null) {
+                    byte[] buffer = new byte[2048];
+                    int count;
+                    while ((count = error.read(buffer)) != -1) bytes.write(buffer, 0, count);
+                    error.close();
+                }
+                throw new Exception("Header API (" + status + "): " + bytes.toString("UTF-8"));
+            }
+        } finally {
+            connection.disconnect();
+        }
+    }
+
     private void createGoogleSpreadsheet() {
         final String token = googleSheetsAccessToken;
         if (token == null || token.trim().isEmpty()) {
@@ -188,7 +230,14 @@ public class MainActivity extends FragmentActivity {
                 if (spreadsheetId.isEmpty()) throw new Exception("Google Sheet ID পাওয়া যায়নি");
                 getSharedPreferences("mill_hisab_sheets", MODE_PRIVATE).edit()
                         .putString("spreadsheet_id", spreadsheetId).apply();
-                notifySheetsSpreadsheetResult(true, spreadsheetId, "Google Sheet তৈরি হয়েছে");
+                try {
+                    writeGoogleSpreadsheetHeaders(token, spreadsheetId);
+                } catch (Exception headerError) {
+                    notifySheetsSpreadsheetResult(false, spreadsheetId,
+                            "Sheet তৈরি হয়েছে; কিন্তু কলামের শিরোনাম লেখা যায়নি: " + headerError.getMessage());
+                    return;
+                }
+                notifySheetsSpreadsheetResult(true, spreadsheetId, "Google Sheet ও হিসাবের কলাম তৈরি হয়েছে");
             } catch (Exception e) {
                 notifySheetsSpreadsheetResult(false, "", "Sheet তৈরি হয়নি: " + e.getMessage());
             } finally {
