@@ -72,14 +72,21 @@ All months remain in this single table; the `month` column enables filtering. Th
 - Added Android `AuthorizationClient` authorization for the narrow `drive.file` scope. The short-lived access token remains in native memory and is not exposed to WebView JavaScript or persisted.
 - Existing Firebase code remains in the project as a temporary fallback while the Sheets path is developed and tested.
 - Added local tombstone capture for payment and expense deletions; this is only a local journal, not cloud synchronization.
-- Not yet implemented: Google Picker integration, spreadsheet creation, reading/writing rows, change-log merge/acknowledgement, month filtering in Sheets, and end-to-end two-device tests. The current authorization control alone does not sync any data.
+- Google Picker integration, reading/writing actual records, change-log merge/acknowledgement, month filtering in Sheets, and end-to-end two-device tests remain unimplemented. Workbook creation is available, but it does not yet sync any app data.
 
 
 ## Latest implementation update (2026-11-19)
 
 - Added a native Google Sheets API request that creates a spreadsheet titled "মিল হিসাব" with one worksheet titled "হিসাব" after the user grants the existing `drive.file` authorization.
-- The app writes the documented 15-column table header to row 1 using the Sheets Values API.
+- The app writes the documented 16-column table header (including the `deleted` tombstone flag) to row 1 using the Sheets Values API.
 - The returned spreadsheet ID is stored locally in Android SharedPreferences; the WebView receives only the spreadsheet ID and a user-facing result, never the OAuth access token.
 - The creation control is exposed in Settings after successful authorization. This is a first-device workbook-creation step only.
 - Not yet implemented: writing actual customer/meal/payment/expense records, reading and merging sheet rows, retry/idempotency journal operations, selecting the same spreadsheet on another phone, and two-device verification. Creating the workbook and its header is not yet data synchronization.
-- A build for the latest source changes is pending; do not distribute the APK until the latest workflow completes successfully and the feature is tested on a device.
+- Build `44629726178` for commit `bcce3de` completed successfully, including JavaScript syntax checks, Android debug APK build, and artifact upload. This confirms buildability only; the APK has not been tested on a physical device.
+
+
+## Follow-up implementation update (2026-11-20)
+
+- Expanded the sheet header range from `A1:O1` to `A1:P1` and added the `deleted` column so the actual header matches the documented tombstone-capable row schema.
+- Added a native-side reuse guard: if this installation already has a saved spreadsheet ID, the create action reuses that workbook and retries header setup instead of creating another duplicate workbook. The access token remains native-only.
+- A fresh Android build is running for this change. This is still workbook setup only; actual record synchronization and second-device selection remain outstanding.
