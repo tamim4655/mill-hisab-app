@@ -161,7 +161,7 @@ public class MainActivity extends FragmentActivity {
         new Thread(() -> {
             HttpURLConnection connection = null;
             try {
-                String range = java.net.URLEncoder.encode("'হিসাব'!A1:P", "UTF-8");
+                String range = java.net.URLEncoder.encode("'হিসাব'!A1:Q", "UTF-8");
                 URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId
                         + "/values/" + range);
                 connection = (HttpURLConnection) url.openConnection();
@@ -191,9 +191,10 @@ public class MainActivity extends FragmentActivity {
                     return;
                 }
                 org.json.JSONArray header = values.optJSONArray(0);
-                if (header == null || header.length() < 16
+                if (header == null || header.length() < 17
                         || !"schema_version".equals(header.optString(0))
-                        || !"deleted".equals(header.optString(15))) {
+                        || !"deleted".equals(header.optString(15))
+                        || !"operation_id".equals(header.optString(16))) {
                     notifySheetsCheckResult(false, rowCount, "শিটের কলাম কাঠামো প্রত্যাশিত নয়");
                     return;
                 }
@@ -208,7 +209,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void writeGoogleSpreadsheetHeaders(String token, String spreadsheetId) throws Exception {
-        String range = java.net.URLEncoder.encode("'হিসাব'!A1:P1", "UTF-8");
+        String range = java.net.URLEncoder.encode("'হিসাব'!A1:Q1", "UTF-8");
         URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId
                 + "/values/" + range + "?valueInputOption=RAW");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -222,7 +223,7 @@ public class MainActivity extends FragmentActivity {
             org.json.JSONArray headers = new org.json.JSONArray();
             String[] columns = {"schema_version", "record_type", "record_id", "month", "date",
                     "member_id", "member_name", "quantity", "unit_rate", "amount", "category",
-                    "description", "payload_json", "updated_at", "device_id", "deleted"};
+                    "description", "payload_json", "updated_at", "device_id", "deleted", "operation_id"};
             for (String column : columns) headers.put(column);
             org.json.JSONArray rows = new org.json.JSONArray();
             rows.put(headers);
