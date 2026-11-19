@@ -99,3 +99,12 @@ All months remain in this single table; the `month` column enables filtering. Th
 - This check does not write, clear, or delete any spreadsheet data. It is a connection/schema smoke check only; it does not verify that app records have synchronized.
 - Build workflow run [44631507161](https://github.com/tamim4655/mill-hisab-app/actions/runs/44631507161) for commit `812b77644de01c9a0ef9512bcaf23a2ff68ce69c` completed successfully and uploaded the debug APK artifact `mill-hisab-debug-apk` (8,171,777 bytes; artifact ID `14582860470`; expires 2026-11-26 22:46:55 UTC).
 - Still outstanding: record serialization and round-trip tests, safe append-only/idempotent change operations, remote read/merge, cross-device workbook selection, and two-device/offline/deletion/restore testing. Do not describe the current build as a working multi-device Sheets sync release.
+
+
+## Snapshot serialization foundation (2026-11-20)
+
+- Added `sheets-sync.js`, a pure serializer that converts the current local database into typed worksheet rows for customers, daily meals (including historical per-day rates), payments, expenses, and the existing payment/expense deletion tombstones.
+- The serializer preserves each complete source record in `payload_json`, uses a deterministic operation identifier for retry/deduplication, and does not mutate local data.
+- Version 2 of the worksheet schema adds a 17th `operation_id` column. Native workbook creation/header repair and read-only verification now use `A1:Q` and validate this column.
+- Added Node tests for the 17-column schema, record coverage, historical meal rates, stable retry identifiers, changed-record identifiers, and source immutability. The Android build workflow now runs these tests and checks the serializer syntax.
+- Important limitation: this serializer is loaded by the app but is not yet connected to a Sheets write/read/merge operation. The current app still does not synchronize records to Sheets. Customer and meal deletions also need explicit tombstone capture before a complete deletion-safe export can be claimed. The native sheet check is now expecting schema version 2; an older 16-column test workbook will need its header repaired through the Settings create/reuse action before it passes verification.
