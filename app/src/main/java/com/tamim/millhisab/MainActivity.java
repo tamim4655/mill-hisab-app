@@ -58,6 +58,9 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.UUID;
 import java.nio.charset.StandardCharsets;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.io.InputStream;
 
 public class MainActivity extends FragmentActivity {
     private WebView webView;
@@ -123,6 +126,77 @@ public class MainActivity extends FragmentActivity {
         notifySheetsAuthorization(true, "Google Sheets অনুমতি দেওয়া হয়েছে");
     }
 
+    private void notifySheetsSpreadsheetResult(boolean ok, String spreadsheetId, String message) {
+        if (webView == null) return;
+        String script = "window.onSheetsSpreadsheetResult && window.onSheetsSpreadsheetResult("
+                + ok + "," + JSONObject.quote(spreadsheetId == null ? "" : spreadsheetId) + ","
+                + JSONObject.quote(message == null ? "" : message) + ")";
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript(script, null);
+        });
+    }
+
+    private void createGoogleSpreadsheet() {
+        final String token = googleSheetsAccessToken;
+        if (token == null || token.trim().isEmpty()) {
+            notifySheetsSpreadsheetResult(false, "", "আগে Google Sheets অনুমতি দিন");
+            return;
+        }
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            try {
+                URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets");
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setConnectTimeout(20000);
+                connection.setReadTimeout(20000);
+                connection.setDoOutput(true);
+                connection.setRequestProperty("Authorization", "Bearer " + token);
+                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                JSONObject properties = new JSONObject();
+                properties.put("title", "মিল হিসাব");
+                JSONObject sheetProperties = new JSONObject();
+                sheetProperties.put("title", "হিসাব");
+                JSONObject sheet = new JSONObject();
+                sheet.put("properties", sheetProperties);
+                org.json.JSONArray sheets = new org.json.JSONArray();
+                sheets.put(sheet);
+                JSONObject body = new JSONObject();
+                body.put("properties", properties);
+                body.put("sheets", sheets);
+                byte[] requestBytes = body.toString().getBytes(StandardCharsets.UTF_8);
+                try (java.io.OutputStream output = connection.getOutputStream()) {
+                    output.write(requestBytes);
+                    output.flush();
+                }
+                int status = connection.getResponseCode();
+                InputStream responseStream = status >= 200 && status < 300
+                        ? connection.getInputStream() : connection.getErrorStream();
+                ByteArrayOutputStream responseBytes = new ByteArrayOutputStream();
+                if (responseStream != null) {
+                    byte[] buffer = new byte[4096];
+                    int count;
+                    while ((count = responseStream.read(buffer)) != -1) responseBytes.write(buffer, 0, count);
+                    responseStream.close();
+                }
+                String responseText = responseBytes.toString("UTF-8");
+                if (status < 200 || status >= 300) {
+                    throw new Exception("Google Sheets API (" + status + "): " + responseText);
+                }
+                JSONObject response = new JSONObject(responseText);
+                String spreadsheetId = response.optString("spreadsheetId", "");
+                if (spreadsheetId.isEmpty()) throw new Exception("Google Sheet ID পাওয়া যায়নি");
+                getSharedPreferences("mill_hisab_sheets", MODE_PRIVATE).edit()
+                        .putString("spreadsheet_id", spreadsheetId).apply();
+                notifySheetsSpreadsheetResult(true, spreadsheetId, "Google Sheet তৈরি হয়েছে");
+            } catch (Exception e) {
+                notifySheetsSpreadsheetResult(false, "", "Sheet তৈরি হয়নি: " + e.getMessage());
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        }, "create-google-sheet").start();
+    }
+
     private long getCloudUpdatedAt(com.google.firebase.firestore.DocumentSnapshot doc) {
         Object value = doc.get("updatedAt");
         if (value instanceof com.google.firebase.Timestamp) {
@@ -138,6 +212,11 @@ public class MainActivity extends FragmentActivity {
         @JavascriptInterface
         public void authorizeGoogleSheets() {
             runOnUiThread(() -> requestGoogleSheetsAuthorization());
+        }
+
+        @JavascriptInterface
+        public void createGoogleSpreadsheet() {
+            createGoogleSpreadsheet();
         }
 
         @JavascriptInterface
