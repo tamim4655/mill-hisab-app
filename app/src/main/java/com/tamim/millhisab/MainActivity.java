@@ -137,7 +137,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void writeGoogleSpreadsheetHeaders(String token, String spreadsheetId) throws Exception {
-        String range = java.net.URLEncoder.encode("'হিসাব'!A1:O1", "UTF-8");
+        String range = java.net.URLEncoder.encode("'হিসাব'!A1:P1", "UTF-8");
         URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId
                 + "/values/" + range + "?valueInputOption=RAW");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -151,7 +151,7 @@ public class MainActivity extends FragmentActivity {
             org.json.JSONArray headers = new org.json.JSONArray();
             String[] columns = {"schema_version", "record_type", "record_id", "month", "date",
                     "member_id", "member_name", "quantity", "unit_rate", "amount", "category",
-                    "description", "payload_json", "updated_at", "device_id"};
+                    "description", "payload_json", "updated_at", "device_id", "deleted"};
             for (String column : columns) headers.put(column);
             org.json.JSONArray rows = new org.json.JSONArray();
             rows.put(headers);
@@ -187,6 +187,16 @@ public class MainActivity extends FragmentActivity {
         new Thread(() -> {
             HttpURLConnection connection = null;
             try {
+                // Reuse the workbook already created on this installation. This also lets
+                // the user retry header setup without accidentally creating duplicate sheets.
+                String savedSpreadsheetId = getSharedPreferences("mill_hisab_sheets", MODE_PRIVATE)
+                        .getString("spreadsheet_id", "");
+                if (savedSpreadsheetId != null && !savedSpreadsheetId.trim().isEmpty()) {
+                    writeGoogleSpreadsheetHeaders(token, savedSpreadsheetId);
+                    notifySheetsSpreadsheetResult(true, savedSpreadsheetId,
+                            "আগের Google Sheet পাওয়া গেছে; কলামের শিরোনাম যাচাই করে ঠিক করা হয়েছে");
+                    return;
+                }
                 URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets");
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
