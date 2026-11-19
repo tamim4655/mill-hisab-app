@@ -216,7 +216,7 @@ public class MainActivity extends FragmentActivity {
 
         @JavascriptInterface
         public void createGoogleSpreadsheet() {
-            createGoogleSpreadsheet();
+            MainActivity.this.createGoogleSpreadsheet();
         }
 
         @JavascriptInterface
