@@ -684,6 +684,7 @@ input:focus,select:focus{border-color:#20a365;box-shadow:0 0 0 4px rgba(32,163,1
   <p id="sheetsStatus">Google Sheets সংযোগ চালু করতে অনুমতি দিন</p>
   <div class="minimal-cloud-actions"><button id="sheetsConnectBtn" onclick="(window.AndroidBridge&&AndroidBridge.authorizeGoogleSheets?AndroidBridge.authorizeGoogleSheets():sheetsNeedsApk())">Google Sheets অনুমতি দিন</button></div>
   <div class="minimal-cloud-actions"><button id="sheetsCreateBtn" class="secondary hidden" onclick="(window.AndroidBridge&&AndroidBridge.createGoogleSpreadsheet?AndroidBridge.createGoogleSpreadsheet():sheetsNeedsApk())">প্রথম ফোনে Google Sheet তৈরি করুন</button></div>
+  <div class="minimal-cloud-actions"><button id="sheetsCheckBtn" class="secondary hidden" onclick="(window.AndroidBridge&&AndroidBridge.checkGoogleSpreadsheet?AndroidBridge.checkGoogleSpreadsheet():sheetsNeedsApk())">Google Sheet সংযোগ পরীক্ষা করুন</button></div>
   <p id="cloudStatus" class="hidden">পুরোনো Cloud Backup-এর অবস্থা</p>
   <div class="minimal-cloud-actions hidden"><button id="cloudLoginBtn" onclick="(window.AndroidBridge&&AndroidBridge.startGoogleSignIn?AndroidBridge.startGoogleSignIn():cloudNeedsApk())">পুরোনো Cloud Login</button><button class="secondary" id="cloudSyncBtn" onclick="cloudManualSync()">এখন সিঙ্ক</button><button class="danger" id="cloudLogoutBtn" onclick="(window.AndroidBridge&&AndroidBridge.signOutCloud?AndroidBridge.signOutCloud():cloudNoApk())">লগআউট</button></div>
 </div>
@@ -910,6 +911,8 @@ function onSheetsAuthorizationResult(ok,msg){
  if(button)button.textContent=ok?'অনুমতি পাওয়া গেছে':'আবার অনুমতি দিন';
  const createButton=document.getElementById('sheetsCreateBtn');
  if(createButton)createButton.classList.toggle('hidden',!ok);
+ const checkButton=document.getElementById('sheetsCheckBtn');
+ if(checkButton)checkButton.classList.toggle('hidden',!ok);
 }
 function onSheetsSpreadsheetResult(ok,spreadsheetId,msg){
  const status=document.getElementById('sheetsStatus');
@@ -919,6 +922,10 @@ function onSheetsSpreadsheetResult(ok,spreadsheetId,msg){
   localStorage.setItem('mill_hisab_sheets_id_v1',spreadsheetId);
   if(createButton&&ok)createButton.textContent='Google Sheet তৈরি হয়েছে';
  }
+}
+function onSheetsCheckResult(ok,rowCount,msg){
+ const status=document.getElementById('sheetsStatus');
+ if(status)status.textContent=(ok?'✓ ':'⚠ ')+(msg||'Google Sheet পরীক্ষা সম্পন্ন');
 }
 function cloudManualSync(){
  if(!cloudSignedIn){cloudStatus('আগে Google Login করুন');return}
