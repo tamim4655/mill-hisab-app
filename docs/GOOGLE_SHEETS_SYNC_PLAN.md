@@ -90,3 +90,12 @@ All months remain in this single table; the `month` column enables filtering. Th
 - Expanded the sheet header range from `A1:O1` to `A1:P1` and added the `deleted` column so the actual header matches the documented tombstone-capable row schema.
 - Added a native-side reuse guard: if this installation already has a saved spreadsheet ID, the create action reuses that workbook and retries header setup instead of creating another duplicate workbook. The access token remains native-only.
 - A fresh Android build is running for this change. This is still workbook setup only; actual record synchronization and second-device selection remain outstanding.
+
+
+## Read-only workbook verification update (2026-11-20)
+
+- Added a native read-only check action in Settings. It requires a live native Google Sheets access token and the workbook ID saved by the first-device creation flow.
+- The check requests values from `'হিসাব'!A1:P`, verifies that a 16-column header begins with `schema_version` and ends with `deleted`, and reports the number of returned rows (including the header).
+- This check does not write, clear, or delete any spreadsheet data. It is a connection/schema smoke check only; it does not verify that app records have synchronized.
+- Build workflow run [44631507161](https://github.com/tamim4655/mill-hisab-app/actions/runs/44631507161) for commit `812b77644de01c9a0ef9512bcaf23a2ff68ce69c` completed successfully and uploaded the debug APK artifact `mill-hisab-debug-apk` (8,171,777 bytes; artifact ID `14582860470`; expires 2026-11-26 22:46:55 UTC).
+- Still outstanding: record serialization and round-trip tests, safe append-only/idempotent change operations, remote read/merge, cross-device workbook selection, and two-device/offline/deletion/restore testing. Do not describe the current build as a working multi-device Sheets sync release.
