@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "fix/**" ]
+    branches: [ "main", "fix/**", "feature/**" ]
 
 concurrency:
   group: android-apk-${{ github.ref }}
@@ -15,6 +15,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -44,11 +45,50 @@ jobs:
           yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Check JavaScript syntax
-        run: node --check app/src/main/assets/features.js
+      - name: Check JavaScript syntax and serializer tests
+        run: |
+          node --check app/src/main/assets/features.js
+          node --check app/src/main/assets/sheets-sync.js
+          node --test tests/sheets-sync.test.js
+
+      - name: Check inline JavaScript syntax
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re, pathlib, subprocess, tempfile
+          html = pathlib.Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>', html, flags=re.I)
+          if not scripts:
+              raise SystemExit('No inline scripts found')
+          for i, script in enumerate(scripts):
+              with tempfile.NamedTemporaryFile('w', suffix='.js', encoding='utf-8') as f:
+                  f.write(script); f.flush()
+                  subprocess.run(['node', '--check', f.name], check=True)
+          print(f'Validated {len(scripts)} inline script(s)')
+          PY
+
+      - name: Configure optional stable signing key
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
+            KEYSTORE_PATH="$RUNNER_TEMP/mill-hisab-stable-debug.jks"
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+            echo "ANDROID_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "Stable debug signing key configured."
+          else
+            echo "Stable signing secrets not configured; using the temporary runner debug key."
+          fi
 
       - name: Build debug APK
-        run: gradle --no-daemon assembleDebug
+        run: gradle --no-daemon --console=plain --stacktrace assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

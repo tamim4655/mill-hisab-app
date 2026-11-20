@@ -12,6 +12,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 import java.util.Calendar;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
@@ -23,19 +27,459 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.WindowManager;
 import androidx.biometric.BiometricPrompt;
+import com.google.android.gms.auth.api.identity.AuthorizationRequest;
+import com.google.android.gms.auth.api.identity.AuthorizationResult;
+import com.google.android.gms.auth.api.identity.Identity;
+import com.google.android.gms.common.api.Scope;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.ListenerRegistration;
+import org.json.JSONObject;
+import com.google.gson.Gson;
+import java.util.HashMap;
+import java.util.Map;
 import androidx.biometric.BiometricManager;
 import androidx.fragment.app.FragmentActivity;
 import androidx.core.content.ContextCompat;
 import java.util.concurrent.Executor;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Locale;
+import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.io.InputStream;
 
 public class MainActivity extends FragmentActivity {
     private WebView webView;
+    private static final int RC_GOOGLE_SIGN_IN = 9101;
+    private static final int RC_GOOGLE_SHEETS_AUTH = 9102;
+    // Access tokens are kept in memory only; they are short-lived and must never be persisted.
+    private String googleSheetsAccessToken;
+    private FirebaseAuth firebaseAuth;
+    private FirebaseFirestore firestore;
+    private GoogleSignInClient googleSignInClient;
+    private ListenerRegistration cloudListener;
+    private String cloudDeviceId;
+    private ConnectivityManager cloudConnectivityManager;
+    private ConnectivityManager.NetworkCallback cloudNetworkCallback;
     private static final int REQUEST_NOTIFICATIONS = 8102;
     private static final String CHANNEL_ID = "mill_hisab_due_reminders";
     private String pendingTitle;
     private String pendingMessage;
 
+    private static final java.util.List<Scope> GOOGLE_SHEETS_SCOPES =
+            java.util.Collections.singletonList(new Scope("https://www.googleapis.com/auth/drive.file"));
+
+    private void notifySheetsAuthorization(boolean ok, String message) {
+        if (webView == null) return;
+        String script = "window.onSheetsAuthorizationResult && window.onSheetsAuthorizationResult("
+                + ok + "," + JSONObject.quote(message == null ? "" : message) + ")";
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript(script, null);
+        });
+    }
+
+    private void requestGoogleSheetsAuthorization() {
+        AuthorizationRequest request = AuthorizationRequest.builder()
+                .setRequestedScopes(GOOGLE_SHEETS_SCOPES)
+                .build();
+        Identity.getAuthorizationClient(this).authorize(request)
+                .addOnSuccessListener(result -> {
+                    if (result.hasResolution() && result.getPendingIntent() != null) {
+                        try {
+                            startIntentSenderForResult(
+                                    result.getPendingIntent().getIntentSender(),
+                                    RC_GOOGLE_SHEETS_AUTH, null, 0, 0, 0);
+                        } catch (android.content.IntentSender.SendIntentException e) {
+                            notifySheetsAuthorization(false, "Google অনুমতি পেজ খোলা যায়নি: " + e.getMessage());
+                        }
+                    } else {
+                        acceptGoogleSheetsAuthorization(result);
+                    }
+                })
+                .addOnFailureListener(e ->
+                        notifySheetsAuthorization(false, "Google Sheets অনুমতি পাওয়া যায়নি: " + e.getMessage()));
+    }
+
+    private void acceptGoogleSheetsAuthorization(AuthorizationResult result) {
+        String token = result == null ? null : result.getAccessToken();
+        if (token == null || token.trim().isEmpty()) {
+            googleSheetsAccessToken = null;
+            notifySheetsAuthorization(false, "Google access token পাওয়া যায়নি");
+            return;
+        }
+        // Keep the short-lived token inside the native layer. Never expose it to WebView JavaScript.
+        googleSheetsAccessToken = token;
+        notifySheetsAuthorization(true, "Google Sheets অনুমতি দেওয়া হয়েছে");
+    }
+
+    private void notifySheetsSpreadsheetResult(boolean ok, String spreadsheetId, String message) {
+        if (webView == null) return;
+        String script = "window.onSheetsSpreadsheetResult && window.onSheetsSpreadsheetResult("
+                + ok + "," + JSONObject.quote(spreadsheetId == null ? "" : spreadsheetId) + ","
+                + JSONObject.quote(message == null ? "" : message) + ")";
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript(script, null);
+        });
+    }
+
+    private void notifySheetsCheckResult(boolean ok, int rowCount, String message) {
+        if (webView == null) return;
+        String script = "window.onSheetsCheckResult && window.onSheetsCheckResult("
+                + ok + "," + rowCount + "," + JSONObject.quote(message == null ? "" : message) + ")";
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript(script, null);
+        });
+    }
+
+    // Read-only connection check: verifies access to the saved workbook without changing rows.
+    private void checkGoogleSpreadsheet() {
+        final String token = googleSheetsAccessToken;
+        final String spreadsheetId = getSharedPreferences("mill_hisab_sheets", MODE_PRIVATE)
+                .getString("spreadsheet_id", "");
+        if (token == null || token.trim().isEmpty()) {
+            notifySheetsCheckResult(false, 0, "আগে Google Sheets অনুমতি দিন");
+            return;
+        }
+        if (spreadsheetId == null || spreadsheetId.trim().isEmpty()) {
+            notifySheetsCheckResult(false, 0, "এই ফোনে Google Sheet তৈরি করা হয়নি");
+            return;
+        }
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            try {
+                String range = java.net.URLEncoder.encode("'হিসাব'!A1:Q", "UTF-8");
+                URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId
+                        + "/values/" + range);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(20000);
+                connection.setReadTimeout(20000);
+                connection.setRequestProperty("Authorization", "Bearer " + token);
+                int status = connection.getResponseCode();
+                InputStream stream = status >= 200 && status < 300
+                        ? connection.getInputStream() : connection.getErrorStream();
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                if (stream != null) {
+                    byte[] buffer = new byte[4096];
+                    int count;
+                    while ((count = stream.read(buffer)) != -1) bytes.write(buffer, 0, count);
+                    stream.close();
+                }
+                String responseText = bytes.toString("UTF-8");
+                if (status < 200 || status >= 300) {
+                    throw new Exception("Sheets API (" + status + "): " + responseText);
+                }
+                JSONObject response = new JSONObject(responseText);
+                org.json.JSONArray values = response.optJSONArray("values");
+                int rowCount = values == null ? 0 : values.length();
+                if (rowCount == 0) {
+                    notifySheetsCheckResult(false, 0, "শিটে শিরোনাম পাওয়া যায়নি; আবার শিট তৈরি/শিরোনাম সেট করুন");
+                    return;
+                }
+                org.json.JSONArray header = values.optJSONArray(0);
+                if (header == null || header.length() < 17
+                        || !"schema_version".equals(header.optString(0))
+                        || !"deleted".equals(header.optString(15))
+                        || !"operation_id".equals(header.optString(16))) {
+                    notifySheetsCheckResult(false, rowCount, "শিটের কলাম কাঠামো প্রত্যাশিত নয়");
+                    return;
+                }
+                notifySheetsCheckResult(true, rowCount,
+                        "Google Sheet সংযোগ ঠিক আছে; মোট " + rowCount + "টি সারি পাওয়া গেছে (শিরোনামসহ)");
+            } catch (Exception e) {
+                notifySheetsCheckResult(false, 0, "Google Sheet পরীক্ষা ব্যর্থ: " + e.getMessage());
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        }, "check-google-sheet").start();
+    }
+
+    private void writeGoogleSpreadsheetHeaders(String token, String spreadsheetId) throws Exception {
+        String range = java.net.URLEncoder.encode("'হিসাব'!A1:Q1", "UTF-8");
+        URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId
+                + "/values/" + range + "?valueInputOption=RAW");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        try {
+            connection.setRequestMethod("PUT");
+            connection.setConnectTimeout(20000);
+            connection.setReadTimeout(20000);
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            org.json.JSONArray headers = new org.json.JSONArray();
+            String[] columns = {"schema_version", "record_type", "record_id", "month", "date",
+                    "member_id", "member_name", "quantity", "unit_rate", "amount", "category",
+                    "description", "payload_json", "updated_at", "device_id", "deleted", "operation_id"};
+            for (String column : columns) headers.put(column);
+            org.json.JSONArray rows = new org.json.JSONArray();
+            rows.put(headers);
+            JSONObject body = new JSONObject();
+            body.put("values", rows);
+            try (java.io.OutputStream output = connection.getOutputStream()) {
+                output.write(body.toString().getBytes(StandardCharsets.UTF_8));
+                output.flush();
+            }
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) {
+                InputStream error = connection.getErrorStream();
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                if (error != null) {
+                    byte[] buffer = new byte[2048];
+                    int count;
+                    while ((count = error.read(buffer)) != -1) bytes.write(buffer, 0, count);
+                    error.close();
+                }
+                throw new Exception("Header API (" + status + "): " + bytes.toString("UTF-8"));
+            }
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private void createGoogleSpreadsheet() {
+        final String token = googleSheetsAccessToken;
+        if (token == null || token.trim().isEmpty()) {
+            notifySheetsSpreadsheetResult(false, "", "আগে Google Sheets অনুমতি দিন");
+            return;
+        }
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            try {
+                // Reuse the workbook already created on this installation. This also lets
+                // the user retry header setup without accidentally creating duplicate sheets.
+                String savedSpreadsheetId = getSharedPreferences("mill_hisab_sheets", MODE_PRIVATE)
+                        .getString("spreadsheet_id", "");
+                if (savedSpreadsheetId != null && !savedSpreadsheetId.trim().isEmpty()) {
+                    writeGoogleSpreadsheetHeaders(token, savedSpreadsheetId);
+                    notifySheetsSpreadsheetResult(true, savedSpreadsheetId,
+                            "আগের Google Sheet পাওয়া গেছে; কলামের শিরোনাম যাচাই করে ঠিক করা হয়েছে");
+                    return;
+                }
+                URL url = new URL("https://sheets.googleapis.com/v4/spreadsheets");
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setConnectTimeout(20000);
+                connection.setReadTimeout(20000);
+                connection.setDoOutput(true);
+                connection.setRequestProperty("Authorization", "Bearer " + token);
+                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                JSONObject properties = new JSONObject();
+                properties.put("title", "মিল হিসাব");
+                JSONObject sheetProperties = new JSONObject();
+                sheetProperties.put("title", "হিসাব");
+                JSONObject sheet = new JSONObject();
+                sheet.put("properties", sheetProperties);
+                org.json.JSONArray sheets = new org.json.JSONArray();
+                sheets.put(sheet);
+                JSONObject body = new JSONObject();
+                body.put("properties", properties);
+                body.put("sheets", sheets);
+                byte[] requestBytes = body.toString().getBytes(StandardCharsets.UTF_8);
+                try (java.io.OutputStream output = connection.getOutputStream()) {
+                    output.write(requestBytes);
+                    output.flush();
+                }
+                int status = connection.getResponseCode();
+                InputStream responseStream = status >= 200 && status < 300
+                        ? connection.getInputStream() : connection.getErrorStream();
+                ByteArrayOutputStream responseBytes = new ByteArrayOutputStream();
+                if (responseStream != null) {
+                    byte[] buffer = new byte[4096];
+                    int count;
+                    while ((count = responseStream.read(buffer)) != -1) responseBytes.write(buffer, 0, count);
+                    responseStream.close();
+                }
+                String responseText = responseBytes.toString("UTF-8");
+                if (status < 200 || status >= 300) {
+                    throw new Exception("Google Sheets API (" + status + "): " + responseText);
+                }
+                JSONObject response = new JSONObject(responseText);
+                String spreadsheetId = response.optString("spreadsheetId", "");
+                if (spreadsheetId.isEmpty()) throw new Exception("Google Sheet ID পাওয়া যায়নি");
+                getSharedPreferences("mill_hisab_sheets", MODE_PRIVATE).edit()
+                        .putString("spreadsheet_id", spreadsheetId).apply();
+                try {
+                    writeGoogleSpreadsheetHeaders(token, spreadsheetId);
+                } catch (Exception headerError) {
+                    notifySheetsSpreadsheetResult(false, spreadsheetId,
+                            "Sheet তৈরি হয়েছে; কিন্তু কলামের শিরোনাম লেখা যায়নি: " + headerError.getMessage());
+                    return;
+                }
+                notifySheetsSpreadsheetResult(true, spreadsheetId, "Google Sheet ও হিসাবের কলাম তৈরি হয়েছে");
+            } catch (Exception e) {
+                notifySheetsSpreadsheetResult(false, "", "Sheet তৈরি হয়নি: " + e.getMessage());
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        }, "create-google-sheet").start();
+    }
+
+    private long getCloudUpdatedAt(com.google.firebase.firestore.DocumentSnapshot doc) {
+        Object value = doc.get("updatedAt");
+        if (value instanceof com.google.firebase.Timestamp) {
+            return ((com.google.firebase.Timestamp) value).toDate().getTime();
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return 0L;
+    }
+
     private class AppBridge {
+        @JavascriptInterface
+        public void authorizeGoogleSheets() {
+            runOnUiThread(() -> requestGoogleSheetsAuthorization());
+        }
+
+        @JavascriptInterface
+        public void createGoogleSpreadsheet() {
+            MainActivity.this.createGoogleSpreadsheet();
+        }
+
+        @JavascriptInterface
+        public void checkGoogleSpreadsheet() {
+            MainActivity.this.checkGoogleSpreadsheet();
+        }
+
+        @JavascriptInterface
+        public void startGoogleSignIn() {
+            runOnUiThread(() -> {
+                if (googleSignInClient == null) {
+                    if (webView != null) webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(false,'Google Login প্রস্তুত নয়')", null);
+                    return;
+                }
+                startActivityForResult(googleSignInClient.getSignInIntent(), RC_GOOGLE_SIGN_IN);
+            });
+        }
+
+        @JavascriptInterface
+        public void checkCloudAuth() {
+            runOnUiThread(() -> {
+                if (firebaseAuth != null && firebaseAuth.getCurrentUser() != null) {
+                    String email = JSONObject.quote(firebaseAuth.getCurrentUser().getEmail() == null ? "" : firebaseAuth.getCurrentUser().getEmail());
+                    webView.evaluateJavascript("window.onCloudAuthState && window.onCloudAuthState(true," + email + ")", null);
+                } else if (webView != null) webView.evaluateJavascript("window.onCloudAuthState && window.onCloudAuthState(false,'')", null);
+            });
+        }
+
+        @JavascriptInterface
+        public void signOutCloud() {
+            runOnUiThread(() -> {
+                if (cloudListener != null) {
+                    cloudListener.remove();
+                    cloudListener = null;
+                }
+                if (firebaseAuth != null) firebaseAuth.signOut();
+                if (googleSignInClient != null) googleSignInClient.signOut();
+                if (webView != null) webView.evaluateJavascript("window.onCloudAuthState && window.onCloudAuthState(false,'')", null);
+            });
+        }
+
+        @JavascriptInterface
+        public void uploadCloudData(String json) {
+            String uid = firebaseAuth == null || firebaseAuth.getCurrentUser() == null
+                    ? "" : firebaseAuth.getCurrentUser().getUid();
+            if (uid.isEmpty() || firestore == null || json == null || json.getBytes(StandardCharsets.UTF_8).length > 750 * 1024) {
+                if (webView != null) {
+                    String message = uid.isEmpty() ? "Google Login নেই" : "ডেটা ৭০০KB-এর বেশি অথবা ক্লাউড প্রস্তুত নয়";
+                    runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(message) + "," + JSONObject.quote(uid) + ")", null));
+                }
+                return;
+            }
+            try {
+                Map<String, Object> payload = new HashMap<>();
+                Map<String, Object> data = new Gson().fromJson(json, Map.class);
+                payload.put("data", data);
+                payload.put("updatedAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
+                payload.put("deviceId", cloudDeviceId == null ? "unknown" : cloudDeviceId);
+                firestore.collection("users").document(uid).collection("appData").document("main")
+                    .set(payload, SetOptions.merge())
+                    .addOnSuccessListener(v -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(true,'ক্লাউডে সেভ হয়েছে'," + JSONObject.quote(uid) + ")", null)))
+                    .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(e.getMessage()) + "," + JSONObject.quote(uid) + ")", null)));
+            } catch (Exception e) {
+                if (webView != null) runOnUiThread(() -> webView.evaluateJavascript("window.onCloudUploadResult && window.onCloudUploadResult(false," + JSONObject.quote(e.getMessage()) + "," + JSONObject.quote(uid) + ")", null));
+            }
+        }
+
+        @JavascriptInterface
+        public void downloadCloudData() {
+            if (firebaseAuth == null || firebaseAuth.getCurrentUser() == null || firestore == null) return;
+            String uid = firebaseAuth.getCurrentUser().getUid();
+            firestore.collection("users").document(uid).collection("appData").document("main").get()
+                .addOnSuccessListener(doc -> {
+                    Map<String, Object> response = new HashMap<>();
+                    if (doc.exists() && doc.get("data") instanceof java.util.Map) {
+                        response.put("uid", uid);
+                        response.put("data", doc.get("data"));
+                        response.put("updatedAt", getCloudUpdatedAt(doc));
+                        response.put("deviceId", doc.getString("deviceId") == null ? "" : doc.getString("deviceId"));
+                    } else {
+                        response.put("uid", uid);
+                        response.put("exists", false);
+                    }
+                    final String result = new Gson().toJson(response);
+                    runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(" + result + ")", null));
+                })
+                .addOnFailureListener(e -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("uid", uid);
+                    response.put("error", true);
+                    final String result = new Gson().toJson(response);
+                    runOnUiThread(() -> webView.evaluateJavascript("window.onCloudDataResult && window.onCloudDataResult(" + result + ")", null));
+                });
+        }
+
+        @JavascriptInterface
+        public String getCloudUserId() {
+            return firebaseAuth == null || firebaseAuth.getCurrentUser() == null ? "" : firebaseAuth.getCurrentUser().getUid();
+        }
+
+        @JavascriptInterface
+        public String getCloudDeviceId() {
+            return cloudDeviceId == null ? "unknown" : cloudDeviceId;
+        }
+
+        @JavascriptInterface
+        public void startCloudListener() {
+            if (firebaseAuth == null || firebaseAuth.getCurrentUser() == null || firestore == null) return;
+            if (cloudListener != null) cloudListener.remove();
+            String uid = firebaseAuth.getCurrentUser().getUid();
+            cloudListener = firestore.collection("users").document(uid).collection("appData").document("main")
+                .addSnapshotListener((doc, error) -> {
+                    if (error != null || doc == null || !doc.exists() || !(doc.get("data") instanceof java.util.Map)) return;
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("data", doc.get("data"));
+                    response.put("updatedAt", getCloudUpdatedAt(doc));
+                    response.put("uid", uid);
+                    response.put("deviceId", doc.getString("deviceId") == null ? "" : doc.getString("deviceId"));
+                    String payloadJson = new Gson().toJson(response);
+                    if (webView != null) runOnUiThread(() ->
+                        webView.evaluateJavascript("window.onCloudRemoteUpdate && window.onCloudRemoteUpdate(" + payloadJson + ")", null));
+                });
+        }
+
+        @JavascriptInterface
+        public void stopCloudListener() {
+            if (cloudListener != null) {
+                cloudListener.remove();
+                cloudListener = null;
+            }
+        }
+
         @JavascriptInterface
         public void shareText(String title, String text) {
             runOnUiThread(() -> {
@@ -83,6 +527,65 @@ public class MainActivity extends FragmentActivity {
         @JavascriptInterface
         public void cancelDailyReminder() {
             runOnUiThread(() -> cancelReminder());
+        }
+
+        @JavascriptInterface
+        public synchronized void saveAutoBackup(String json) {
+            if (json == null || json.length() == 0 || json.length() > 10 * 1024 * 1024) return;
+            File dir = new File(getFilesDir(), "auto-backups");
+            if (!dir.exists() && !dir.mkdirs()) return;
+            String stamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US).format(new Date());
+            String unique = UUID.randomUUID().toString().substring(0, 8);
+            File target = new File(dir, "backup-" + stamp + "-" + unique + ".json");
+            File temp = new File(dir, target.getName() + ".tmp");
+            try {
+                byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+                try (FileOutputStream out = new FileOutputStream(temp)) {
+                    out.write(bytes);
+                    out.flush();
+                    out.getFD().sync();
+                }
+                if (!temp.renameTo(target)) {
+                    // Keep the previous backups intact if the atomic rename is unavailable.
+                    try (FileOutputStream out = new FileOutputStream(target)) {
+                        out.write(bytes);
+                        out.flush();
+                        out.getFD().sync();
+                    }
+                    temp.delete();
+                }
+                File[] backups = dir.listFiles((folder, name) -> name.startsWith("backup-") && name.endsWith(".json"));
+                if (backups != null) {
+                    Arrays.sort(backups, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+                    for (int i = 30; i < backups.length; i++) backups[i].delete();
+                }
+            } catch (Exception ignored) {
+                temp.delete();
+            }
+        }
+
+        @JavascriptInterface
+        public String getLatestAutoBackup() {
+            File dir = new File(getFilesDir(), "auto-backups");
+            File[] backups = dir.listFiles((folder, name) -> name.startsWith("backup-") && name.endsWith(".json"));
+            if (backups == null || backups.length == 0) return "";
+            Arrays.sort(backups, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+            try {
+                FileInputStream in = new FileInputStream(backups[0]);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[8192]; int count;
+                while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
+                in.close(); return out.toString("UTF-8");
+            } catch (Exception ignored) { return ""; }
+        }
+
+        @JavascriptInterface
+        public String getAutoBackupInfo() {
+            File dir = new File(getFilesDir(), "auto-backups");
+            File[] backups = dir.listFiles((folder, name) -> name.startsWith("backup-") && name.endsWith(".json"));
+            if (backups == null || backups.length == 0) return "";
+            Arrays.sort(backups, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+            return new SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(new Date(backups[0].lastModified()));
         }
 
         @JavascriptInterface
@@ -235,6 +738,19 @@ public class MainActivity extends FragmentActivity {
             getWindow().setNavigationBarColor(android.graphics.Color.rgb(0, 105, 55));
             getWindow().getDecorView().setSystemUiVisibility(0);
         }
+        firebaseAuth = FirebaseAuth.getInstance();
+        android.content.SharedPreferences cloudPrefs = getSharedPreferences("mill_hisab_cloud", MODE_PRIVATE);
+        cloudDeviceId = cloudPrefs.getString("device_id", null);
+        if (cloudDeviceId == null) {
+            cloudDeviceId = UUID.randomUUID().toString();
+            cloudPrefs.edit().putString("device_id", cloudDeviceId).apply();
+        }
+        firestore = FirebaseFirestore.getInstance();
+        GoogleSignInOptions signInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
+        googleSignInClient = GoogleSignIn.getClient(this, signInOptions);
         webView = new WebView(this);
         webView.setBackgroundColor(0xFFFFFFFF);
         WebSettings settings = webView.getSettings();
@@ -255,6 +771,88 @@ public class MainActivity extends FragmentActivity {
         setContentView(webView);
         restoreReminderSchedule();
         webView.loadUrl("file:///android_asset/index.html");
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RC_GOOGLE_SHEETS_AUTH) {
+            if (resultCode == RESULT_OK) {
+                try {
+                    AuthorizationResult authorizationResult =
+                            Identity.getAuthorizationClient(this).getAuthorizationResultFromIntent(data);
+                    acceptGoogleSheetsAuthorization(authorizationResult);
+                } catch (Exception e) {
+                    googleSheetsAccessToken = null;
+                    notifySheetsAuthorization(false, "Google অনুমতি সম্পন্ন হয়নি: " + e.getMessage());
+                }
+            } else {
+                googleSheetsAccessToken = null;
+                notifySheetsAuthorization(false, "Google Sheets অনুমতি বাতিল করা হয়েছে");
+            }
+            return;
+        }
+        if (requestCode == RC_GOOGLE_SIGN_IN) {
+            try {
+                com.google.android.gms.auth.api.signin.GoogleSignInAccount account =
+                        GoogleSignIn.getSignedInAccountFromIntent(data).getResult(ApiException.class);
+                if (account != null && account.getIdToken() != null) {
+                    firebaseAuth.signInWithCredential(GoogleAuthProvider.getCredential(account.getIdToken(), null))
+                        .addOnSuccessListener(auth -> {
+                            String email = auth.getUser() == null ? "" : auth.getUser().getEmail();
+                            String safeEmail = JSONObject.quote(email == null ? "" : email);
+                            runOnUiThread(() -> webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(true," + safeEmail + ")", null));
+                        })
+                        .addOnFailureListener(e -> runOnUiThread(() -> webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(false," + JSONObject.quote(e.getMessage()) + ")", null)));
+                } else if (webView != null) webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(false,'Google token পাওয়া যায়নি')", null);
+            } catch (Exception e) {
+                if (webView != null) webView.evaluateJavascript("window.onCloudAuthResult && window.onCloudAuthResult(false," + JSONObject.quote(e.getMessage()) + ")", null);
+            }
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        try {
+            cloudConnectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cloudConnectivityManager != null && cloudNetworkCallback == null) {
+                NetworkRequest request = new NetworkRequest.Builder()
+                        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                        .build();
+                cloudNetworkCallback = new ConnectivityManager.NetworkCallback() {
+                    @Override
+                    public void onAvailable(Network network) {
+                        runOnUiThread(() -> {
+                            if (webView != null) webView.evaluateJavascript(
+                                    "window.onCloudConnectivityRestored && window.onCloudConnectivityRestored()", null);
+                        });
+                    }
+                };
+                cloudConnectivityManager.registerNetworkCallback(request, cloudNetworkCallback);
+            }
+        } catch (Exception ignored) {
+            cloudNetworkCallback = null;
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        if (cloudConnectivityManager != null && cloudNetworkCallback != null) {
+            try { cloudConnectivityManager.unregisterNetworkCallback(cloudNetworkCallback); }
+            catch (Exception ignored) { }
+            cloudNetworkCallback = null;
+        }
+        super.onStop();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            webView.post(() -> webView.evaluateJavascript(
+                    "window.onCloudConnectivityRestored && window.onCloudConnectivityRestored()", null));
+        }
     }
 
     @Override
